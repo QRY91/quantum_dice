@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://coksglpv4pwe3"]
+
+[ext_resource type="PackedScene" uid="uid://d3mthjkecise0" path="res://scenes/health_example.tscn" id="1_qjrba"]
+
+[node name="game" type="Node2D"]
+
+[node name="HealthExample" parent="." instance=ExtResource("1_qjrba")]
+
+[node name="ScoreNumbersOrigin" type="Node2D" parent="."]

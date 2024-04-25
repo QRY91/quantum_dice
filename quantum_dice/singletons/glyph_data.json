@@ -1,0 +1,12 @@
+{
+	"0": {
+		"Name": "Ace of Spades",
+		"Type": "playing_card",
+		"Texture": "ace_of_spades.png",
+	},
+	"1": {
+		"Name": "I",
+		"Type": "roman_numeral",
+		"Texture": "roman_I.png",
+	},
+}
