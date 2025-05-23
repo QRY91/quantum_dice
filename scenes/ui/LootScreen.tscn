@@ -1,0 +1,45 @@
+[gd_scene load_steps=2 format=3 uid="uid://bnhhm228llrbm"]
+
+[ext_resource type="Script" path="res://scenes/ui/LootScreen.gd" id="1_kgc8u"]
+
+[node name="LootScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_kgc8u")
+
+[node name="Background" type="ColorRect" parent="."]
+modulate = Color(0, 0, 0, 0.588235)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TitleLabel" type="Label" parent="."]
+layout_mode = 0
+offset_right = 1152.0
+offset_bottom = 26.0
+text = "Choose a New Quantum Face!"
+horizontal_alignment = 1
+
+[node name="LootOptionsContainer" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_left = -1.0
+offset_top = 193.0
+offset_right = 1151.0
+offset_bottom = 401.0
+alignment = 1
+
+[node name="HelpLabel" type="Label" parent="."]
+layout_mode = 0
+offset_top = 458.0
+offset_right = 1149.0
+offset_bottom = 643.0
+text = "Select a face and press Confirm"
+horizontal_alignment = 1
+vertical_alignment = 2

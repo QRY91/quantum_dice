@@ -1,9 +1,0 @@
-[gd_scene load_steps=3 format=3 uid="uid://d3mthjkecise0"]
-
-[ext_resource type="PackedScene" uid="uid://cqxvdbdprg3gu" path="res://assets/ui/progress_bar.tscn" id="1_1ifye"]
-[ext_resource type="Script" path="res://scenes/health_example.gd" id="1_y84hk"]
-
-[node name="HealthExample" type="Node2D"]
-script = ExtResource("1_y84hk")
-
-[node name="ProgressBar" parent="." instance=ExtResource("1_1ifye")]

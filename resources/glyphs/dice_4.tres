@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="GlyphData" load_steps=3 format=3 uid="uid://b82vurmp0aanu"]
+
+[ext_resource type="Script" path="res://scripts/resources/GlyphData.gd" id="1_8la1b"]
+[ext_resource type="Texture2D" uid="uid://kp1aamutr654" path="res://assets/sprites/4.png" id="2_hks3o"]
+
+[resource]
+script = ExtResource("1_8la1b")
+id = "dice_4"
+display_name = "4"
+type = "dice"
+value = 4
+texture = ExtResource("2_hks3o")
