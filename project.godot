@@ -29,6 +29,10 @@ window/stretch/mode="canvas_items"
 
 project/assembly_name="Quantum_Dice"
 
+[gui]
+
+theme/custom="res://resources/themes/quantum_dice_theme.tres"
+
 [input]
 
 roll_dice={

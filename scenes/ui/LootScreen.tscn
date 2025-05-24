@@ -1,8 +1,11 @@
-[gd_scene load_steps=2 format=3 uid="uid://bnhhm228llrbm"]
+[gd_scene load_steps=4 format=3 uid="uid://bnhhm228llrbm"]
 
 [ext_resource type="Script" path="res://scenes/ui/LootScreen.gd" id="1_kgc8u"]
+[ext_resource type="Theme" uid="uid://s6n6onv1nmd5" path="res://resources/themes/quantum_dice_theme.tres" id="2_w1k1a"]
+[ext_resource type="FontFile" uid="uid://dtjqk5r1x0ruk" path="res://assets/fonts/Kenney Mini.ttf" id="3_rdd4y"]
 
 [node name="LootScreen" type="Control"]
+z_index = 10
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -12,7 +15,7 @@ grow_vertical = 2
 script = ExtResource("1_kgc8u")
 
 [node name="Background" type="ColorRect" parent="."]
-modulate = Color(0, 0, 0, 0.588235)
+modulate = Color(0, 0, 0, 0.937255)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -22,24 +25,33 @@ grow_vertical = 2
 
 [node name="TitleLabel" type="Label" parent="."]
 layout_mode = 0
-offset_right = 1152.0
-offset_bottom = 26.0
+offset_right = 638.0
+offset_bottom = 66.0
+theme = ExtResource("2_w1k1a")
+theme_override_fonts/font = ExtResource("3_rdd4y")
+theme_override_font_sizes/font_size = 40
 text = "Choose a New Quantum Face!"
 horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="LootOptionsContainer" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(320, 240)
 layout_mode = 0
-offset_left = -1.0
-offset_top = 193.0
-offset_right = 1151.0
-offset_bottom = 401.0
+offset_left = 160.0
+offset_top = 160.0
+offset_right = 480.0
+offset_bottom = 400.0
 alignment = 1
 
 [node name="HelpLabel" type="Label" parent="."]
+custom_minimum_size = Vector2(640, 80)
 layout_mode = 0
-offset_top = 458.0
-offset_right = 1149.0
-offset_bottom = 643.0
+offset_top = 560.0
+offset_right = 640.0
+offset_bottom = 640.0
+theme = ExtResource("2_w1k1a")
+theme_override_fonts/font = ExtResource("3_rdd4y")
+theme_override_font_sizes/font_size = 20
 text = "Select a face and press Confirm"
 horizontal_alignment = 1
-vertical_alignment = 2
+vertical_alignment = 1

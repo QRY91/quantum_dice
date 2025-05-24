@@ -62,30 +62,35 @@ func display_loot_options(options: Array[GlyphData]):
 		loot_option_buttons[0].grab_focus()
 
 
-func _unhandled_input(event):
-	if not visible: # Don't process input if not visible
+func _unhandled_input(event: InputEvent): # event is still passed, but we use Input singleton for checks
+	if not visible: 
 		return
 
 	if loot_glyphs_data.is_empty():
+		if Input.is_action_just_pressed("cancel_action"): # Use Input singleton
+			print("LootScreen: Cancelled/Closed (no loot options).")
+			emit_signal("loot_screen_closed")
+			hide()
+			get_viewport().set_input_as_handled()
 		return
 
-	if event.is_action_just_pressed("navigate_left"):
+	if Input.is_action_just_pressed("navigate_left"): # Use Input singleton
 		selected_index = (selected_index - 1 + loot_glyphs_data.size()) % loot_glyphs_data.size()
 		_update_selection_visuals()
-		get_viewport().set_input_as_handled() # Consume event
-	elif event.is_action_just_pressed("navigate_right"):
+		get_viewport().set_input_as_handled()
+	elif Input.is_action_just_pressed("navigate_right"): # Use Input singleton
 		selected_index = (selected_index + 1) % loot_glyphs_data.size()
 		_update_selection_visuals()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_just_pressed("confirm_action"):
+	elif Input.is_action_just_pressed("confirm_action"): # Use Input singleton
 		if selected_index >= 0 and selected_index < loot_glyphs_data.size():
 			var chosen_glyph = loot_glyphs_data[selected_index]
 			print("LootScreen: Confirmed selection - ", chosen_glyph.display_name)
 			emit_signal("loot_selected", chosen_glyph)
-			hide() # Hide after selection
+			hide()
 			get_viewport().set_input_as_handled()
-	elif event.is_action_just_pressed("cancel_action"): # Optional: allow closing without choice
-		print("LootScreen: Cancelled/Closed.")
+	elif Input.is_action_just_pressed("cancel_action"): # Use Input singleton
+		print("LootScreen: Cancelled/Closed by player.")
 		emit_signal("loot_screen_closed")
 		hide()
 		get_viewport().set_input_as_handled()
@@ -112,3 +117,4 @@ func _update_selection_visuals():
 		else:
 			button.modulate = Color.WHITE # Normal
 	# print("Selected loot index: ", selected_index)
+

@@ -4,8 +4,8 @@ extends Node
 ## Dictionary to hold all loaded glyph data, keyed by glyph ID.
 var all_glyphs: Dictionary = {}
 
-## Array defining the glyphs on the player's starting die.
-var starting_die_configuration: Array[GlyphData] = []
+## Array defining the glyphs on the player's starting dice.
+var starting_dice_configuration: Array[GlyphData] = []
 
 ## List of glyphs that can be offered as loot.
 var potential_loot_glyphs: Array[GlyphData] = []
@@ -14,7 +14,7 @@ var potential_loot_glyphs: Array[GlyphData] = []
 func _ready():
 	_load_all_glyph_resources()
 	_setup_starting_configurations()
-	print("GlyphDB initialized. Loaded %d glyphs. Starting die: %d faces. Potential loot: %d types." % [all_glyphs.size(), starting_die_configuration.size(), potential_loot_glyphs.size()])
+	print("GlyphDB initialized. Loaded %d glyphs. Starting dice: %d faces. Potential loot: %d types." % [all_glyphs.size(), starting_dice_configuration.size(), potential_loot_glyphs.size()])
 
 
 func _load_all_glyph_resources():
@@ -41,16 +41,16 @@ func _load_all_glyph_resources():
 
 
 func _setup_starting_configurations():
-	starting_die_configuration.clear()
+	starting_dice_configuration.clear()
 	potential_loot_glyphs.clear()
 
-	# Define the player's starting die faces by their IDs
+	# Define the player's starting dice faces by their IDs
 	# Ensure these IDs match the 'id' field in your .tres files
 	var starting_ids = ["dice_1", "dice_2", "dice_3", "dice_4", "dice_5", "dice_6"]
 	
 	for glyph_id in starting_ids:
 		if all_glyphs.has(glyph_id):
-			starting_die_configuration.append(all_glyphs[glyph_id])
+			starting_dice_configuration.append(all_glyphs[glyph_id])
 		else:
 			printerr("GlyphDB Warning: Starting glyph ID '", glyph_id, "' not found in all_glyphs.")
 
@@ -61,9 +61,9 @@ func _setup_starting_configurations():
 		if glyph.type != "dice": # Customize this logic as needed
 			potential_loot_glyphs.append(glyph)
 	
-	if starting_die_configuration.is_empty() and not all_glyphs.is_empty():
-		print("GlyphDB Warning: Starting die configuration is empty despite loaded glyphs. Check starting_ids.")
-	if potential_loot_glyphs.is_empty() and all_glyphs.size() > starting_die_configuration.size():
+	if starting_dice_configuration.is_empty() and not all_glyphs.is_empty():
+		print("GlyphDB Warning: Starting dice configuration is empty despite loaded glyphs. Check starting_ids.")
+	if potential_loot_glyphs.is_empty() and all_glyphs.size() > starting_dice_configuration.size():
 		print("GlyphDB Warning: No potential loot glyphs identified based on current criteria (type != 'dice').")
 
 ## Retrieves a specific glyph by its ID.
@@ -74,27 +74,36 @@ func get_glyph_by_id(id: String) -> GlyphData:
 	return null
 
 ## Returns a specified number of random glyphs suitable for loot.
-## Can exclude glyphs already owned by the player or recently offered.
-func get_random_loot_options(count: int, exclude_current_die_faces: Array[GlyphData] = []) -> Array[GlyphData]:
+## MODIFIED: Now allows offering glyphs that might already be on the player's dice.
+func get_random_loot_options(count: int, _current_player_dice_faces_unused: Array[GlyphData] = []) -> Array[GlyphData]:
+	# The _current_player_dice_faces_unused parameter is now ignored for exclusion purposes,
+	# but kept for signature compatibility if other parts of your code call it with that argument.
+	# You can remove it entirely if no other code passes it.
+
 	var available_loot: Array[GlyphData] = []
-	var exclude_ids: Array[String] = [] # Store IDs of glyphs to exclude
 
-	for glyph_to_exclude in exclude_current_die_faces:
-		if glyph_to_exclude and glyph_to_exclude is GlyphData: # Ensure it's not null and is Glyph
-			exclude_ids.append(glyph_to_exclude.id)
+	# Directly use potential_loot_glyphs as the base for what can be offered.
+	# We are no longer excluding based on what the player already has.
+	if potential_loot_glyphs.is_empty():
+		print("GlyphDB: No 'potential_loot_glyphs' defined at all. Cannot offer loot.")
+		return [] # Return empty if the base loot pool itself is empty
 
-	for glyph in potential_loot_glyphs: # potential_loot_glyphs should already be populated with GlyphData objects
-		if not glyph.id in exclude_ids:
-			available_loot.append(glyph)
+	# Make a copy to shuffle without modifying the original potential_loot_glyphs array
+	available_loot = potential_loot_glyphs.duplicate() 
 	
 	var loot_options: Array[GlyphData] = []
-	if available_loot.is_empty():
-		# print("GlyphDB: No available loot options to choose from after exclusions.")
-		return loot_options # Return empty if no suitable loot
+	if available_loot.is_empty(): # Should only happen if potential_loot_glyphs was empty
+		# This print is a bit redundant now given the check above, but safe.
+		# print("GlyphDB: No available loot options to choose from (pool was empty or became empty).")
+		return loot_options 
 
-	available_loot.shuffle() # Randomize the order
+	available_loot.shuffle() # Randomize the order of all potential loot items
 	
 	for i in range(min(count, available_loot.size())):
 		loot_options.append(available_loot[i])
 		
+	if loot_options.is_empty() and not potential_loot_glyphs.is_empty():
+		# This case would be unusual now unless 'count' is 0 or less.
+		print("GlyphDB: Loot options ended up empty despite a populated potential_loot_glyphs pool.")
+
 	return loot_options

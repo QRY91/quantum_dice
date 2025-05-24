@@ -1,0 +1,16 @@
+[gd_resource type="Theme" load_steps=4 format=3 uid="uid://s6n6onv1nmd5"]
+
+[ext_resource type="FontFile" uid="uid://hkgptpdyk0po" path="res://assets/fonts/Kenney Mini Square.ttf" id="1_ct5xn"]
+[ext_resource type="FontFile" uid="uid://dtjqk5r1x0ruk" path="res://assets/fonts/Kenney Mini.ttf" id="1_xptrc"]
+
+[sub_resource type="FontVariation" id="FontVariation_icupo"]
+base_font = ExtResource("1_ct5xn")
+
+[resource]
+default_font_size = 18
+BodyLabel/base_type = &"Label"
+BodyLabel/fonts/Font = null
+Label/fonts/font = ExtResource("1_xptrc")
+ScoreLabel/base_type = &"Label"
+ScoreLabel/font_sizes/FontSize = 28
+ScoreLabel/fonts/Font = SubResource("FontVariation_icupo")

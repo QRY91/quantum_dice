@@ -1,8 +1,10 @@
-[gd_scene load_steps=91 format=3 uid="uid://dec5xjt3ywnvf"]
+[gd_scene load_steps=93 format=3 uid="uid://dec5xjt3ywnvf"]
 
 [ext_resource type="Script" path="res://scenes/Game.gd" id="1_0u5nu"]
 [ext_resource type="Texture2D" uid="uid://dxh87t14thxxl" path="res://assets/sprites/game_ui_background.png" id="2_kad3w"]
 [ext_resource type="Texture2D" uid="uid://rd6v618wd54a" path="res://assets/sprites/roll_animation_frames/roll_animation_sheet.png" id="2_rpg7d"]
+[ext_resource type="Theme" uid="uid://s6n6onv1nmd5" path="res://resources/themes/quantum_dice_theme.tres" id="3_tba6y"]
+[ext_resource type="Texture2D" uid="uid://dphoo1xfctjvi" path="res://assets/sprites/inventory.png" id="7_cxbdo"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_anf20"]
 atlas = ExtResource("2_rpg7d")
@@ -611,16 +613,16 @@ animations = [{
 }],
 "loop": true,
 "name": &"default",
-"speed": 24.0
+"speed": 12.0
 }]
 
 [node name="Game" type="Node2D"]
-visible = false
 script = ExtResource("1_0u5nu")
 
 [node name="UICanvas" type="CanvasLayer" parent="."]
 
 [node name="LogoUIRect" type="TextureRect" parent="UICanvas"]
+visible = false
 modulate = Color(0.317647, 0.317647, 0.317647, 1)
 offset_right = 640.0
 offset_bottom = 640.0
@@ -628,72 +630,34 @@ texture = ExtResource("2_kad3w")
 metadata/_edit_lock_ = true
 
 [node name="MainGameUI" type="Control" parent="UICanvas"]
+z_index = 1
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-
-[node name="LevelLabel" type="Label" parent="UICanvas/MainGameUI"]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 23.0
-text = "Level: 1"
+mouse_filter = 1
+theme = ExtResource("3_tba6y")
 metadata/_edit_lock_ = true
 
-[node name="RollsLabel" type="Label" parent="UICanvas/MainGameUI"]
+[node name="InventoryToggleButton" type="TextureButton" parent="UICanvas/MainGameUI"]
+modulate = Color(1, 1, 1, 0.380392)
+z_index = 5
+custom_minimum_size = Vector2(80, 80)
 layout_mode = 0
-offset_top = 25.0
-offset_right = 70.0
-offset_bottom = 51.0
-text = "Rolls: 0/0"
+offset_left = 480.0
+offset_top = 320.0
+offset_right = 560.0
+offset_bottom = 400.0
+texture_normal = ExtResource("7_cxbdo")
+texture_hover = ExtResource("7_cxbdo")
+stretch_mode = 3
 metadata/_edit_lock_ = true
-
-[node name="ScoreLabel" type="Label" parent="UICanvas/MainGameUI"]
-layout_mode = 0
-offset_top = 51.0
-offset_right = 61.0
-offset_bottom = 77.0
-text = "Score: 0"
-metadata/_edit_lock_ = true
-
-[node name="TargetLabel" type="Label" parent="UICanvas/MainGameUI"]
-layout_mode = 0
-offset_left = 1.0
-offset_top = 75.0
-offset_right = 69.0
-offset_bottom = 101.0
-text = "Target: 0"
-metadata/_edit_lock_ = true
-
-[node name="LastRollDisplay" type="TextureRect" parent="UICanvas/MainGameUI"]
-custom_minimum_size = Vector2(64, 64)
-layout_mode = 0
-offset_left = 551.0
-offset_top = 259.0
-offset_right = 615.0
-offset_bottom = 323.0
-expand_mode = 2
-stretch_mode = 5
-
-[node name="DieFaceDisplayContainer" type="HBoxContainer" parent="UICanvas/MainGameUI"]
-layout_mode = 0
-offset_left = 9.0
-offset_top = 591.0
-offset_right = 49.0
-offset_bottom = 631.0
-
-[node name="SynergyNotificationLabel" type="Label" parent="UICanvas/MainGameUI"]
-layout_mode = 0
-offset_left = 554.0
-offset_top = 190.0
-offset_right = 594.0
-offset_bottom = 213.0
-horizontal_alignment = 1
-vertical_alignment = 1
 
 [node name="AnimatedRollButton" type="TextureButton" parent="UICanvas/MainGameUI"]
+visible = false
+z_index = 2
 layout_mode = 0
 offset_left = 400.0
 offset_top = 400.0
@@ -701,26 +665,20 @@ offset_right = 560.0
 offset_bottom = 560.0
 action_mode = 0
 ignore_texture_size = true
+metadata/_edit_lock_ = true
 
 [node name="RollAnimationDisplay" type="AnimatedSprite2D" parent="UICanvas/MainGameUI/AnimatedRollButton"]
-z_index = 1
+z_index = 2
 position = Vector2(80, 80)
 scale = Vector2(0.625, 0.625)
 sprite_frames = SubResource("SpriteFrames_j0wi5")
 autoplay = "default"
 frame_progress = 0.509438
+metadata/_edit_lock_ = true
 
-[node name="ColorRect" type="ColorRect" parent="UICanvas/MainGameUI"]
-visible = false
-custom_minimum_size = Vector2(80, 80)
-layout_mode = 0
-offset_left = 240.0
-offset_top = 480.0
-offset_right = 320.0
-offset_bottom = 560.0
-color = Color(1, 0.2, 1, 1)
-
-[node name="RollHistoryDisplayContainer" type="Control" parent="UICanvas/MainGameUI"]
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
+[node name="RolledGlyphOnButtonDisplay" type="TextureRect" parent="UICanvas/MainGameUI/AnimatedRollButton"]
+z_index = 2
+custom_minimum_size = Vector2(160, 160)
+offset_right = 160.0
+offset_bottom = 160.0
+metadata/_edit_lock_ = true
