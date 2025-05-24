@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cj83s6ltgxs88"
-path="res://.godot/imported/anim_logo_sheet.png-b11d5e5200d5962990b1a2b42e071264.ctex"
+uid="uid://rd6v618wd54a"
+path="res://.godot/imported/roll_animation_sheet.png-a0b7a9204f42711d58111ee10d4aeb47.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/anim_logo_frames/anim_logo_sheet.png"
-dest_files=["res://.godot/imported/anim_logo_sheet.png-b11d5e5200d5962990b1a2b42e071264.ctex"]
+source_file="res://assets/sprites/roll_animation_frames/roll_animation_sheet.png"
+dest_files=["res://.godot/imported/roll_animation_sheet.png-a0b7a9204f42711d58111ee10d4aeb47.ctex"]
 
 [params]
 
@@ -31,4 +31,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

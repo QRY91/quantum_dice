@@ -19,6 +19,12 @@ config/icon="res://icon.svg"
 
 GlyphDB="*res://scripts/autoloads/GlyphDB.gd"
 
+[display]
+
+window/size/viewport_width=640
+window/size/viewport_height=640
+window/stretch/mode="canvas_items"
+
 [dotnet]
 
 project/assembly_name="Quantum_Dice"
@@ -71,3 +77,4 @@ navigate_down={
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0, 0, 0, 1)

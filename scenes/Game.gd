@@ -41,18 +41,20 @@ var synergies_fired_this_round: Dictionary = {} # Key: synergy_id (String), Valu
 @onready var target_label: Label
 @onready var rolls_label: Label
 @onready var level_label: Label
-@onready var roll_button: Button
+@onready var roll_button: TextureButton
 @onready var die_face_display_container: HBoxContainer # To show current faces on die
 @onready var last_roll_display: TextureRect        # To show the texture of the last rolled glyph
 @onready var synergy_notification_label: Label     # For synergy messages
 # --- Scene Preloads ---
 var loot_screen_scene: PackedScene = preload("res://scenes/ui/LootScreen.tscn")
 @onready var loot_screen_instance: Control # To hold the instanced loot screen
+# --- Visual Roll History ---
+const MAX_VISUAL_HISTORY_SLOTS: int = 15 # Based on our C-path calculation
+var roll_history_slot_positions: Array[Vector2] = []
+# Assign this in the editor or ensure the path is correct:
+@onready var roll_history_display_container: Control = $UICanvas/MainGameUI/RollHistoryDisplayContainer
 
-# Will be used later for instancing UI screens
-# var menu_screen_scene: PackedScene = preload("res://scenes/ui/MenuScreen.tscn") # Example
-# var loot_screen_scene: PackedScene = preload("res://scenes/ui/LootScreen.tscn") # Example
-
+var current_visual_history_index: int = 0 # To track the next slot to fill
 
 func _ready():
 	# Assign UI Node References - Paths must match your scene tree structure!
@@ -61,27 +63,48 @@ func _ready():
 	# We'll fill these assignments after creating the UI in the scene editor.
 	
 	# Connect roll button signal (will also be done after creating the button)
-	# if roll_button: roll_button.pressed.connect(_on_roll_button_pressed)
+	if roll_button: roll_button.pressed.connect(Callable(self, "_on_roll_button_pressed"))
 	# Assign UI Node References - Ensure paths match your scene tree!
+	
+	
 	level_label = $UICanvas/MainGameUI/LevelLabel
 	rolls_label = $UICanvas/MainGameUI/RollsLabel
 	score_label = $UICanvas/MainGameUI/ScoreLabel
 	target_label = $UICanvas/MainGameUI/TargetLabel
 	last_roll_display = $UICanvas/MainGameUI/LastRollDisplay
 	die_face_display_container = $UICanvas/MainGameUI/DieFaceDisplayContainer # Will use later
-	roll_button = $UICanvas/MainGameUI/RollButton
+	roll_button = $UICanvas/MainGameUI/AnimatedRollButton
 	synergy_notification_label = $UICanvas/MainGameUI/SynergyNotificationLabel
 
-	# Verify nodes are found (good for debugging)
-	if not is_instance_valid(roll_button):
-		printerr("ERROR: RollButton node not found! Check path in _ready().")
 	if not is_instance_valid(score_label): # Add checks for other critical UI if desired
 		printerr("ERROR: ScoreLabel node not found! Check path in _ready().")
 	
 	# Connect roll button signal
 	if is_instance_valid(roll_button):
 		roll_button.pressed.connect(_on_roll_button_pressed)
-	
+
+	# --- Define visual roll history slot positions (top-left for 80x80 items) ---
+	# Based on the 8x8 matrix provided by the user.
+	roll_history_slot_positions = [
+		# Path: Start near button (bottom-right of path), go L, U, R, D (partial)
+		# (Col * 80, Row * 80)
+		Vector2(240, 480), Vector2(160, 480), Vector2(80, 480),  # Bottom segment of P's, R to L
+		Vector2(80, 400), Vector2(80, 320), Vector2(80, 240), Vector2(80, 160), Vector2(80, 80), # Left segment, B to T
+		Vector2(160, 80), Vector2(240, 80), Vector2(320, 80), Vector2(400, 80), Vector2(480, 80), # Top segment, L to R
+		Vector2(480, 160), Vector2(480, 240)                     # Right segment, T to B (ending before button)
+	]
+	if roll_history_slot_positions.size() != MAX_VISUAL_HISTORY_SLOTS:
+		printerr(
+			"CRITICAL WARNING: roll_history_slot_positions size (", 
+			str(roll_history_slot_positions.size()), 
+			") does not match MAX_VISUAL_HISTORY_SLOTS (", 
+			str(MAX_VISUAL_HISTORY_SLOTS), 
+			")!"
+		)
+
+	_initialize_visual_history_display()
+
+	# ... (initial game state setup, e.g., current_game_state = GameState.INITIALIZING_GAME) ...
 	print("Game scene ready. Initial game state:", GameState.keys()[current_game_state])
 	# current_game_state is already INITIALIZING_GAME, so _process will pick it up.
 # Instantiate Loot Screen
@@ -174,19 +197,6 @@ func _initialize_new_game_session():
 	
 	# The first round setup will be handled by INITIALIZING_ROUND state next.
 
-func _initialize_current_round_setup():
-	print("Initializing round setup for level: ", current_level)
-	current_round_score = 0
-	# Target score scaling
-	target_score = BASE_TARGET_SCORE + (current_level - 1) * TARGET_SCORE_PER_LEVEL_INCREASE
-	# Rolls per round scaling
-	rolls_left = STARTING_ROLLS + int((current_level - 1) / ROLLS_INCREASE_EVERY_X_LEVELS)
-	
-	roll_history.clear()
-	synergies_fired_this_round.clear()
-	last_rolled_glyph = null # Clear the display of the last rolled glyph
-	
-	print("Round ", current_level, " initialized. Target: ", target_score, ". Rolls: ", rolls_left)
 
 func _update_all_ui_elements():
 	# Check if node is valid before trying to access its properties
@@ -219,37 +229,6 @@ func _on_roll_button_pressed():
 	else:
 		print("Cannot roll. State:", GameState.keys()[current_game_state], "Rolls left:", rolls_left)
 
-func _process_the_finished_roll_outcome():
-	if current_player_die.is_empty():
-		printerr("Cannot process roll: Player die is empty!")
-		current_game_state = GameState.PLAYING # Or some error state
-		return
-
-	var rolled_glyph_index = randi() % current_player_die.size()
-	last_rolled_glyph = current_player_die[rolled_glyph_index]
-
-	if not is_instance_valid(last_rolled_glyph):
-		printerr("Rolled glyph is not valid!")
-		# Potentially pick another or handle error
-		current_game_state = GameState.PLAYING 
-		return
-
-	print("Rolled: '", last_rolled_glyph.display_name, "' (Type: ", last_rolled_glyph.type, ", Value: ", str(last_rolled_glyph.value), ")")
-	
-	# Apply score
-	current_round_score += last_rolled_glyph.value
-	total_accumulated_score += last_rolled_glyph.value 
-	
-	# Add to history for synergies
-	roll_history.append(last_rolled_glyph)
-	_check_and_apply_synergies()
-	
-	rolls_left -= 1
-	print("Roll processed. Score: ", current_round_score, ". Rolls left: ", rolls_left)
-	# The next state (PLAYING or ROUND_SUMMARY) will be determined by _process based on rolls_left
-
-
-# --- Functions to be implemented/expanded later ---
 
 func add_glyph_to_player_die(glyph_data: GlyphData):
 	if glyph_data and glyph_data is GlyphData:
@@ -397,3 +376,111 @@ func display_synergy_activation_message_custom(full_message: String):
 				synergy_notification_label.text = ""
 		)
 	# The sfx() calls are now inside each synergy block.
+	
+func _initialize_visual_history_display():
+	if not is_instance_valid(roll_history_display_container):
+		printerr("RollHistoryDisplayContainer node not found in _initialize_visual_history_display!")
+		return
+
+	for child in roll_history_display_container.get_children():
+		child.queue_free()
+	
+	for i in range(MAX_VISUAL_HISTORY_SLOTS):
+		var history_item_rect := TextureRect.new()
+		# Set the size of the history item to match your design unit
+		history_item_rect.custom_minimum_size = Vector2(80, 80) 
+		# Ensure it uses this size, doesn't shrink/grow with texture
+		history_item_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE 
+		# How the texture inside is drawn:
+		history_item_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED 
+
+		if i < roll_history_slot_positions.size():
+			# The roll_history_slot_positions should be the top-left for these 80x80 rects
+			# Recalculate these positions if they were for 32x32 items previously
+			# For an 80x80 item, if its slot's conceptual top-left is (X,Y), its position is (X,Y)
+			history_item_rect.position = roll_history_slot_positions[i] 
+		else:
+			printerr("Error: Mismatch in history slot positions during creation for slot ", i)
+			history_item_rect.position = Vector2(-200, -200) 
+
+		history_item_rect.visible = false
+		roll_history_display_container.add_child(history_item_rect)
+		
+	print("Visual history display initialized with ", roll_history_display_container.get_child_count(), " slot nodes (80x80).")
+
+func _initialize_current_round_setup():
+	# ... (reset scores, set target, rolls_left, etc.) ...
+	print("Initializing round setup for level: ", current_level) # Moved print earlier for clarity
+	current_round_score = 0
+	target_score = BASE_TARGET_SCORE + (current_level - 1) * TARGET_SCORE_PER_LEVEL_INCREASE
+	rolls_left = STARTING_ROLLS + int((current_level - 1) / ROLLS_INCREASE_EVERY_X_LEVELS)
+	
+	roll_history.clear() # Logical history
+	synergies_fired_this_round.clear()
+	last_rolled_glyph = null
+	
+	# Reset visual history
+	current_visual_history_index = 0
+	if is_instance_valid(roll_history_display_container):
+		for i in range(roll_history_display_container.get_child_count()): # Iterate up to actual children count
+			var child_node = roll_history_display_container.get_child(i)
+			if child_node is TextureRect: # Ensure it's the type we expect
+				var item_rect := child_node as TextureRect
+				item_rect.visible = false
+				item_rect.texture = null # Clear the texture
+	else:
+		printerr("RollHistoryDisplayContainer not found in _initialize_current_round_setup!")
+		
+	print("Round ", current_level, " initialized. Target: ", target_score, ". Rolls: ", rolls_left)
+
+
+# res://scripts/Game.gd
+
+func _process_the_finished_roll_outcome():
+	if current_player_die.is_empty(): # Check if the die has faces before trying to roll
+		printerr("CRITICAL: Player die is empty! Cannot process roll.")
+		current_game_state = GameState.PLAYING # Or handle as a more severe error
+		# Potentially give some feedback to the player that their die is empty.
+		return
+
+	# --- Determine the rolled glyph FIRST ---
+	var rolled_glyph_index = randi() % current_player_die.size()
+	last_rolled_glyph = current_player_die[rolled_glyph_index] # Assign to last_rolled_glyph
+
+	# --- NOW check if it's valid (it should be if current_player_die was not empty and contained valid glyphs) ---
+	if not is_instance_valid(last_rolled_glyph):
+		printerr("CRITICAL: last_rolled_glyph became invalid immediately after rolling! This is unexpected. Index: ", rolled_glyph_index)
+		# This would indicate a problem with the contents of current_player_die (e.g., null entries)
+		current_game_state = GameState.PLAYING 
+		return
+
+	# --- Proceed with the valid last_rolled_glyph ---
+	print("Rolled: '", last_rolled_glyph.display_name, "' (Type: ", last_rolled_glyph.type, ", Value: ", str(last_rolled_glyph.value), ")")
+	
+	current_round_score += last_rolled_glyph.value
+	total_accumulated_score += last_rolled_glyph.value 
+	
+	roll_history.append(last_rolled_glyph) # Add to logical history
+
+	# Update visual history display
+	if is_instance_valid(roll_history_display_container) and \
+	   current_visual_history_index < MAX_VISUAL_HISTORY_SLOTS and \
+	   current_visual_history_index < roll_history_display_container.get_child_count():
+		
+		var history_item_node = roll_history_display_container.get_child(current_visual_history_index)
+		if history_item_node is TextureRect:
+			var item_rect := history_item_node as TextureRect
+			item_rect.texture = last_rolled_glyph.texture
+			item_rect.visible = true
+		else:
+			printerr("History item node at index ", current_visual_history_index, " is not a TextureRect!")
+		
+		current_visual_history_index += 1
+	elif current_visual_history_index >= MAX_VISUAL_HISTORY_SLOTS:
+		print("Visual history slots full. Further rolls not shown visually in history track.")
+	
+	_check_and_apply_synergies() # Check for synergies after updating history
+	
+	rolls_left -= 1
+	print("Roll processed. Score: ", current_round_score, ". Rolls left: ", rolls_left)
+	# The _process function's match statement will handle transitioning to ROUND_SUMMARY or back to PLAYING
