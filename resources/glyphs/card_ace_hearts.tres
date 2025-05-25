@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GlyphData" load_steps=3 format=3 uid="uid://bu2thwe13b6t3"]
+
+[ext_resource type="Script" path="res://scripts/resources/GlyphData.gd" id="1_epbpy"]
+[ext_resource type="Texture2D" uid="uid://bf1yp6xixm1eq" path="res://assets/sprites/cards/large/card_hearts_A.png" id="2_tesie"]
+
+[resource]
+script = ExtResource("1_epbpy")
+id = "card_ah"
+display_name = "Ace H"
+type = "card"
+value = 14
+texture = ExtResource("2_tesie")
+suit = "hearts"

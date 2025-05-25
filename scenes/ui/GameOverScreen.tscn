@@ -1,0 +1,78 @@
+[gd_scene load_steps=5 format=3 uid="uid://bmeltgvbc7aag"]
+
+[ext_resource type="Theme" uid="uid://s6n6onv1nmd5" path="res://resources/themes/quantum_dice_theme.tres" id="1_egmfi"]
+[ext_resource type="Script" path="res://scenes/ui/GameOverScreen.gd" id="1_faf5a"]
+[ext_resource type="FontFile" uid="uid://hkgptpdyk0po" path="res://assets/fonts/Kenney Mini Square.ttf" id="2_x6vgm"]
+[ext_resource type="FontFile" uid="uid://dtjqk5r1x0ruk" path="res://assets/fonts/Kenney Mini.ttf" id="3_suwwf"]
+
+[node name="GameOverScreen" type="Control"]
+z_index = 10
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_faf5a")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.866667)
+
+[node name="TitleLabel" type="Label" parent="."]
+layout_mode = 0
+offset_right = 639.0
+offset_bottom = 183.0
+theme = ExtResource("1_egmfi")
+theme_override_fonts/font = ExtResource("2_x6vgm")
+theme_override_font_sizes/font_size = 80
+text = "GAME OVER"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ScoreContainer" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_top = 160.0
+offset_right = 640.0
+offset_bottom = 260.0
+theme = ExtResource("1_egmfi")
+alignment = 1
+
+[node name="FinalScoreLabel" type="Label" parent="ScoreContainer"]
+layout_mode = 2
+theme = ExtResource("1_egmfi")
+text = "Final Score: 0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="LevelReachedLabel" type="Label" parent="ScoreContainer"]
+layout_mode = 2
+theme = ExtResource("1_egmfi")
+text = "Level Reached: 0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ButtonsContainer" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 240.0
+offset_top = 300.0
+offset_right = 400.0
+offset_bottom = 640.0
+alignment = 1
+
+[node name="RetryButton" type="Button" parent="ButtonsContainer"]
+layout_mode = 2
+theme = ExtResource("1_egmfi")
+theme_override_fonts/font = ExtResource("3_suwwf")
+text = "RETRY"
+
+[node name="MainMenuButton" type="Button" parent="ButtonsContainer"]
+layout_mode = 2
+theme = ExtResource("1_egmfi")
+theme_override_fonts/font = ExtResource("3_suwwf")
+text = "MAIN MENU"

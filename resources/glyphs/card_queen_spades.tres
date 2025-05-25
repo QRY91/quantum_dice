@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GlyphData" load_steps=3 format=3 uid="uid://d3e5gbfpsska7"]
+
+[ext_resource type="Script" path="res://scripts/resources/GlyphData.gd" id="1_ogxwp"]
+[ext_resource type="Texture2D" uid="uid://cadamxc2spkb2" path="res://assets/sprites/cards/large/card_spades_Q.png" id="2_jquo0"]
+
+[resource]
+script = ExtResource("1_ogxwp")
+id = "card_qs"
+display_name = "Queen S"
+type = "card"
+value = 12
+texture = ExtResource("2_jquo0")
+suit = "spades"

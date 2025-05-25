@@ -18,19 +18,27 @@ extends Resource
 ## Texture used to visually represent this glyph in the game.
 @export var texture: Texture2D
 
+@export var suit: String = "" # NEW: e.g., "hearts", "diamonds", "clubs", "spades", or "" if not applicable
+# Valid suit strings we'll use: "hearts", "diamonds", "clubs", "spades"
+
+# Optional: enum for suits if you prefer strict typing later
+# enum CardSuit { NONE, HEARTS, DIAMONDS, CLUBS, SPADES }
+# @export var card_suit_enum: CardSuit = CardSuit.NONE
+
 # Optional fields you might add later:
 # @export var roll_sfx: AudioStream
 # @export var description: String = ""
 # @export var rarity: int = 1 # e.g., 1 for common, 5 for legendary
 
 # Basic constructor (mainly for programmatic creation, less so for .tres files)
-func _init(p_id: String = "", p_display_name: String = "", p_type: String = "", p_value: int = 0, p_texture: Texture2D = null):
+func _init(p_id: String = "", p_display_name: String = "", p_type: String = "", p_value: int = 0, p_texture: Texture2D = null, p_suit: String = ""):
 	if p_id != "": id = p_id
 	if p_display_name != "": display_name = p_display_name
 	if p_type != "": type = p_type
 	# Allow 0 as a valid value, so don't check p_value != 0
 	value = p_value
 	if p_texture != null: texture = p_texture
+	if p_suit != "": suit = p_suit # Initialize suit
 
 # Helper function for debugging or simple display
 func get_tooltip_text() -> String:

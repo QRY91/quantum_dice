@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GlyphData" load_steps=3 format=3 uid="uid://buh6bmy8b7mtk"]
+
+[ext_resource type="Script" path="res://scripts/resources/GlyphData.gd" id="1_ibx6h"]
+[ext_resource type="Texture2D" uid="uid://b8nty8j7jipxe" path="res://assets/sprites/cards/large/card_hearts_J.png" id="2_xmy2f"]
+
+[resource]
+script = ExtResource("1_ibx6h")
+id = "card_jh"
+display_name = "Jack H"
+type = "card"
+value = 11
+texture = ExtResource("2_xmy2f")
+suit = "hearts"

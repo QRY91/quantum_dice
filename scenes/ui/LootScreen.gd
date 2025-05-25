@@ -104,7 +104,7 @@ func _on_loot_option_button_pressed(button_node: Button):
 		print("LootScreen: Button clicked for - ", chosen_glyph.display_name)
 		emit_signal("loot_selected", chosen_glyph)
 		hide()
-
+		get_viewport().set_input_as_handled() # Ensure input is consumed here too
 
 func _update_selection_visuals():
 	# Example: visually indicate the selected button

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GlyphData" load_steps=3 format=3 uid="uid://brbtwfv4ob6bq"]
+
+[ext_resource type="Script" path="res://scripts/resources/GlyphData.gd" id="1_vlb8l"]
+[ext_resource type="Texture2D" uid="uid://clicuka3gbdcl" path="res://assets/sprites/cards/large/card_hearts_Q.png" id="2_utqu7"]
+
+[resource]
+script = ExtResource("1_vlb8l")
+id = "card_qh"
+display_name = "Queen H"
+type = "card"
+value = 12
+texture = ExtResource("2_utqu7")
+suit = "hearts"

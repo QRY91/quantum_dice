@@ -46,3 +46,10 @@ theme_override_fonts/font = ExtResource("2_s47cy")
 text = "start game
 "
 metadata/_edit_lock_ = true
+
+[node name="HighScoreLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = 251.0
+offset_top = 372.0
+offset_right = 393.0
+offset_bottom = 395.0

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GlyphData" load_steps=3 format=3 uid="uid://bprmqfrr6s4ow"]
+
+[ext_resource type="Script" path="res://scripts/resources/GlyphData.gd" id="1_rgqp4"]
+[ext_resource type="Texture2D" uid="uid://bgkc7u7yehjoj" path="res://assets/sprites/cards/large/card_diamonds_A.png" id="2_makcc"]
+
+[resource]
+script = ExtResource("1_rgqp4")
+id = "card_ad"
+display_name = "Ace D"
+type = "card"
+value = 14
+texture = ExtResource("2_makcc")
+suit = "diamonds"

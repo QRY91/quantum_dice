@@ -40,6 +40,7 @@ func _load_all_glyph_resources():
 		printerr("GlyphDB Error: Could not open directory 'res://resources/glyphs/'")
 
 
+var add_test_runes_to_start: bool = true # Set to true for testing
 func _setup_starting_configurations():
 	starting_dice_configuration.clear()
 	potential_loot_glyphs.clear()
@@ -47,7 +48,12 @@ func _setup_starting_configurations():
 	# Define the player's starting dice faces by their IDs
 	# Ensure these IDs match the 'id' field in your .tres files
 	var starting_ids = ["dice_1", "dice_2", "dice_3", "dice_4", "dice_5", "dice_6"]
-	
+	if add_test_runes_to_start:
+		# Add the runes needed for a specific phrase directly to the starting dice
+		starting_ids.append("rune_sowilo")
+		starting_ids.append("rune_fehu")
+		# starting_ids.append("rune_laguz") # etc.
+
 	for glyph_id in starting_ids:
 		if all_glyphs.has(glyph_id):
 			starting_dice_configuration.append(all_glyphs[glyph_id])
@@ -73,10 +79,53 @@ func get_glyph_by_id(id: String) -> GlyphData:
 	printerr("GlyphDB Error: Glyph with ID '", id, "' not found.")
 	return null
 
-## Returns a specified number of random glyphs suitable for loot.
-## MODIFIED: Now allows offering glyphs that might already be on the player's dice.
+var force_specific_loot_for_testing: bool = true # Set to true to enable test loot
+var test_loot_sequence: Array[String] = [
+	"rune_sowilo", 
+	"rune_fehu", 
+	"rune_laguz", 
+	"rune_ansuz"
+	# Add more rune IDs you want to test acquiring
+]
+var current_test_loot_index: int = 0
+
+# Helper for fallback if you want to keep original random logic easily accessible
+func _get_truly_random_loot(count: int) -> Array[GlyphData]:
+	var available_loot: Array[GlyphData] = potential_loot_glyphs.duplicate()
+	var loot_options: Array[GlyphData] = []
+	if available_loot.is_empty(): return loot_options
+	available_loot.shuffle()
+	for i in range(min(count, available_loot.size())):
+		loot_options.append(available_loot[i])
+	return loot_options
+
 func get_random_loot_options(count: int, _current_player_dice_faces_unused: Array[GlyphData] = []) -> Array[GlyphData]:
-	# The _current_player_dice_faces_unused parameter is now ignored for exclusion purposes,
+	if force_specific_loot_for_testing:
+		var forced_loot_options: Array[GlyphData] = []
+		for i in range(count):
+			if current_test_loot_index < test_loot_sequence.size():
+				var glyph_id_to_force = test_loot_sequence[current_test_loot_index]
+				var glyph_data = get_glyph_by_id(glyph_id_to_force)
+				if is_instance_valid(glyph_data):
+					forced_loot_options.append(glyph_data)
+				else:
+					printerr("GlyphDB Test Loot: Could not find glyph with ID: ", glyph_id_to_force)
+				current_test_loot_index += 1
+			else:
+				# Ran out of specific test loot, offer random from remaining potential loot
+				# This part is simplified; you might want to ensure no duplicates with already forced ones
+				if not potential_loot_glyphs.is_empty():
+					var random_glyph = potential_loot_glyphs[randi() % potential_loot_glyphs.size()]
+					if is_instance_valid(random_glyph) and not forced_loot_options.has(random_glyph):
+						forced_loot_options.append(random_glyph)
+		
+		print("GlyphDB: FORCING TEST LOOT: ", forced_loot_options)
+		if forced_loot_options.is_empty() and not potential_loot_glyphs.is_empty(): # Fallback if test sequence is short
+			return _get_truly_random_loot(count) # Call a helper for actual random if test options exhausted
+		return forced_loot_options
+
+	# --- Original random loot logic ---
+		# The _current_player_dice_faces_unused parameter is now ignored for exclusion purposes,
 	# but kept for signature compatibility if other parts of your code call it with that argument.
 	# You can remove it entirely if no other code passes it.
 

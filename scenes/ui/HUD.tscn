@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://b4y7wdmde2nco"]
+[gd_scene load_steps=6 format=3 uid="uid://b4y7wdmde2nco"]
 
 [ext_resource type="Script" path="res://scenes/ui/HUD.gd" id="1_ba2h4"]
 [ext_resource type="Theme" uid="uid://s6n6onv1nmd5" path="res://resources/themes/quantum_dice_theme.tres" id="2_2e113"]
 [ext_resource type="FontFile" uid="uid://hkgptpdyk0po" path="res://assets/fonts/Kenney Mini Square.ttf" id="3_320o0"]
 [ext_resource type="FontFile" uid="uid://dtjqk5r1x0ruk" path="res://assets/fonts/Kenney Mini.ttf" id="4_qg73b"]
+[ext_resource type="Texture2D" uid="uid://dphoo1xfctjvi" path="res://assets/sprites/inventory.png" id="5_01qn3"]
 
 [node name="HUD" type="Control"]
 layout_mode = 3
@@ -12,6 +13,7 @@ script = ExtResource("1_ba2h4")
 
 [node name="LevelLabel" type="Label" parent="."]
 custom_minimum_size = Vector2(40, 640)
+layout_mode = 0
 offset_left = 580.0
 offset_right = 620.0
 offset_bottom = 640.0
@@ -27,6 +29,7 @@ metadata/_edit_lock_ = true
 
 [node name="RollsLabel" type="Label" parent="."]
 custom_minimum_size = Vector2(640, 80)
+layout_mode = 0
 offset_top = 560.0
 offset_right = 640.0
 offset_bottom = 640.0
@@ -41,6 +44,7 @@ metadata/_edit_lock_ = true
 
 [node name="ScoreLabel" type="Label" parent="."]
 custom_minimum_size = Vector2(640, 80)
+layout_mode = 0
 offset_right = 640.0
 offset_bottom = 80.0
 theme = ExtResource("2_2e113")
@@ -54,6 +58,7 @@ metadata/_edit_lock_ = true
 
 [node name="TargetLabel" type="Label" parent="."]
 custom_minimum_size = Vector2(40, 640)
+layout_mode = 0
 offset_left = 20.0
 offset_right = 60.0
 offset_bottom = 640.0
@@ -70,6 +75,7 @@ metadata/_edit_lock_ = true
 [node name="LastRollDisplay" type="TextureRect" parent="."]
 visible = false
 custom_minimum_size = Vector2(64, 64)
+layout_mode = 0
 offset_left = 303.0
 offset_top = 258.0
 offset_right = 367.0
@@ -79,6 +85,7 @@ stretch_mode = 5
 
 [node name="SynergyNotificationLabel" type="Label" parent="."]
 custom_minimum_size = Vector2(320, 80)
+layout_mode = 0
 offset_left = 160.0
 offset_top = 161.0
 offset_right = 481.0
@@ -100,6 +107,7 @@ offset_bottom = 40.0
 
 [node name="DiceFaceScrollContainer" type="ScrollContainer" parent="."]
 custom_minimum_size = Vector2(320, 240)
+layout_mode = 0
 offset_left = 160.0
 offset_top = 160.0
 offset_right = 480.0
@@ -116,3 +124,17 @@ theme = ExtResource("2_2e113")
 theme_override_constants/h_separation = 0
 theme_override_constants/v_separation = 0
 columns = 8
+
+[node name="InventoryToggleButton" type="TextureButton" parent="."]
+modulate = Color(1, 1, 1, 0.380392)
+z_index = 1
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 0
+offset_left = 480.0
+offset_top = 320.0
+offset_right = 560.0
+offset_bottom = 400.0
+texture_normal = ExtResource("5_01qn3")
+texture_hover = ExtResource("5_01qn3")
+stretch_mode = 3
+metadata/_edit_lock_ = true

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GlyphData" load_steps=3 format=3 uid="uid://crhgxdk2cnyg3"]
+
+[ext_resource type="Script" path="res://scripts/resources/GlyphData.gd" id="1_suh7d"]
+[ext_resource type="Texture2D" uid="uid://drqxxof825d8b" path="res://assets/sprites/cards/large/card_clubs_A.png" id="2_uchib"]
+
+[resource]
+script = ExtResource("1_suh7d")
+id = "card_ac"
+display_name = "Ace C"
+type = "card"
+value = 14
+texture = ExtResource("2_uchib")
+suit = "clubs"

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GlyphData" load_steps=3 format=3 uid="uid://cqe0ruhfpfukj"]
+
+[ext_resource type="Script" path="res://scripts/resources/GlyphData.gd" id="1_lf5j4"]
+[ext_resource type="Texture2D" uid="uid://duu31dhyag45u" path="res://assets/sprites/cards/large/card_clubs_Q.png" id="2_xbujg"]
+
+[resource]
+script = ExtResource("1_lf5j4")
+id = "card_qc"
+display_name = "Queen C"
+type = "card"
+value = 12
+texture = ExtResource("2_xbujg")
+suit = "clubs"

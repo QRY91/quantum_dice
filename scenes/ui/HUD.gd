@@ -2,6 +2,8 @@
 # TABS FOR INDENTATION
 extends Control
 
+signal inventory_toggled(is_now_visible: bool) # New signal
+
 # --- UI Node References ---
 @onready var score_label: Label = $ScoreLabel # Adjust paths if you nested them further under HUD root
 @onready var target_label: Label = $TargetLabel
@@ -23,6 +25,7 @@ var current_visual_history_index: int = 0
 
 func _ready():
 	# --- DEBUG CHECK ---
+	print("HUD _ready: Start.") # New debug
 	if not is_instance_valid(dice_face_scroll_container):
 		printerr("HUD _ready: DiceFaceScrollContainer NOT FOUND or invalid. Path used: $DiceFaceScrollContainer")
 	else:
@@ -48,10 +51,13 @@ func _ready():
 
 	if is_instance_valid(inventory_toggle_button):
 		inventory_toggle_button.pressed.connect(Callable(self, "_on_inventory_toggle_button_pressed"))
+		print("HUD _ready: Connected InventoryToggleButton.pressed signal.") # New debug
+	else:
+		printerr("HUD _ready: InventoryToggleButton NOT FOUND or invalid. Path: $InventoryToggleButton")
 	
 	if is_instance_valid(dice_face_scroll_container):
-		dice_face_scroll_container.visible = false # Inventory starts hidden
-
+		dice_face_scroll_container.visible = false 
+	print("HUD _ready: End.") # New debug
 
 # --- Public Functions for Game.gd to Call ---
 
@@ -168,19 +174,17 @@ func _initialize_visual_history_slots(): # Renamed
 	print("HUD: Visual history display initialized with ", roll_history_display_container.get_child_count(), " slots.")
 
 func _on_inventory_toggle_button_pressed():
+	print("HUD: _on_inventory_toggle_button_pressed CALLED.") # New debug
 	if not is_instance_valid(dice_face_scroll_container):
 		printerr("HUD: DiceFaceScrollContainer not found for toggle.")
 		return
+	
 	dice_face_scroll_container.visible = not dice_face_scroll_container.visible
+	print("HUD: Emitting inventory_toggled. New visibility: ", dice_face_scroll_container.visible) # New debug
+	emit_signal("inventory_toggled", dice_face_scroll_container.visible) 
+	
+	# This print is now redundant if the signal works, but keep for now.
 	if dice_face_scroll_container.visible:
-		# Game.gd needs to pass current_player_dice to this HUD
-		# This requires Game.gd to have a reference to HUD and call a method on it.
-		# For now, this button is on the HUD, so it can call its own update method
-		# if it had access to the dice data (which it doesn't directly yet).
-		# This highlights the need for Game.gd to tell HUD to update.
-		# Let's assume Game.gd will call hud.update_dice_inventory_display(current_player_dice)
-		# when the inventory is toggled ON via a signal or direct call.
-		# For now, we'll just print. The actual update will be triggered by Game.gd.
-		print("HUD: Inventory toggled ON. Game.gd should refresh its content.")
+		print("HUD: dice_face_scroll_container is now VISIBLE.")
 	else:
-		print("HUD: Inventory toggled OFF.")
+		print("HUD: dice_face_scroll_container is now HIDDEN.")

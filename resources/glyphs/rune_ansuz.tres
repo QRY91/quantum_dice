@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GlyphData" load_steps=3 format=3 uid="uid://b6gt87fs6cr3s"]
+
+[ext_resource type="Script" path="res://scripts/resources/GlyphData.gd" id="1_4hyfx"]
+[ext_resource type="Texture2D" uid="uid://c2pkhjipymcvs" path="res://assets/sprites/runes/runeBlack_slab_001.png" id="2_0nbco"]
+
+[resource]
+script = ExtResource("1_4hyfx")
+id = "rune_ansuz"
+display_name = "Ansuz"
+type = "rune"
+value = 1
+texture = ExtResource("2_0nbco")
+suit = ""

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GlyphData" load_steps=3 format=3 uid="uid://py5n4h801v8o"]
+
+[ext_resource type="Script" path="res://scripts/resources/GlyphData.gd" id="1_pg66u"]
+[ext_resource type="Texture2D" uid="uid://chk77cu15cjmd" path="res://assets/sprites/cards/large/card_spades_A.png" id="2_fe261"]
+
+[resource]
+script = ExtResource("1_pg66u")
+id = "card_as"
+display_name = "Ace S"
+type = "card"
+value = 14
+texture = ExtResource("2_fe261")
+suit = "spades"

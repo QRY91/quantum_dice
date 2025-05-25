@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GlyphData" load_steps=3 format=3 uid="uid://ke1bpkxt8v1e"]
+
+[ext_resource type="Script" path="res://scripts/resources/GlyphData.gd" id="1_anvgp"]
+[ext_resource type="Texture2D" uid="uid://4a2bd6u004m7" path="res://assets/sprites/runes/runeBlack_slab_019.png" id="2_ckn0h"]
+
+[resource]
+script = ExtResource("1_anvgp")
+id = "rune_sowilo"
+display_name = "Sowilo"
+type = "rune"
+value = 1
+texture = ExtResource("2_ckn0h")
+suit = ""
