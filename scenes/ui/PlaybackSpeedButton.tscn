@@ -1,0 +1,26 @@
+[gd_scene load_steps=3 format=3 uid="uid://31yi0q5qj6vs"]
+
+[ext_resource type="Script" path="res://scenes/ui/PlaybackSpeedButton.gd" id="1_xuwya"]
+[ext_resource type="Theme" uid="uid://s6n6onv1nmd5" path="res://resources/themes/quantum_dice_theme.tres" id="2_8yhms"]
+
+[node name="PlaybackSpeedButton" type="TextureButton"]
+custom_minimum_size = Vector2(40, 40)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 600.0
+offset_top = 600.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_xuwya")
+
+[node name="Label" type="Label" parent="."]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+theme = ExtResource("2_8yhms")
+theme_override_font_sizes/font_size = 20
+text = "1.0x"
+horizontal_alignment = 1
+vertical_alignment = 1

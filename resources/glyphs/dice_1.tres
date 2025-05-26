@@ -10,3 +10,4 @@ display_name = "1"
 type = "dice"
 value = 1
 texture = ExtResource("2_4m2rg")
+suit = ""
