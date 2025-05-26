@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://b4y7wdmde2nco"]
+[gd_scene load_steps=8 format=3 uid="uid://b4y7wdmde2nco"]
 
 [ext_resource type="Script" path="res://scenes/ui/HUD.gd" id="1_ba2h4"]
 [ext_resource type="Theme" uid="uid://s6n6onv1nmd5" path="res://resources/themes/quantum_dice_theme.tres" id="2_2e113"]
@@ -6,6 +6,7 @@
 [ext_resource type="FontFile" uid="uid://dtjqk5r1x0ruk" path="res://assets/fonts/Kenney Mini.ttf" id="4_qg73b"]
 [ext_resource type="Texture2D" uid="uid://dphoo1xfctjvi" path="res://assets/sprites/inventory.png" id="5_01qn3"]
 [ext_resource type="PackedScene" uid="uid://31yi0q5qj6vs" path="res://scenes/ui/PlaybackSpeedButton.tscn" id="6_quvg6"]
+[ext_resource type="PackedScene" uid="uid://dptegvnfmc884" path="res://scenes/ui/AutoRollButton.tscn" id="7_x1h30"]
 
 [node name="HUD" type="Control"]
 layout_mode = 3
@@ -72,6 +73,21 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 1
 metadata/_edit_lock_ = true
+
+[node name="BossIndicatorLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 610.0
+offset_right = 640.0
+offset_bottom = 636.0
+grow_horizontal = 2
+grow_vertical = 0
+text = "BOSS INCOMING!"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="LastRollDisplay" type="TextureRect" parent="."]
 visible = false
@@ -142,6 +158,15 @@ metadata/_edit_lock_ = true
 
 [node name="PlaybackSpeedButton" parent="." instance=ExtResource("6_quvg6")]
 layout_mode = 1
+offset_right = 600.0
+offset_bottom = 640.0
 grow_horizontal = 1
 grow_vertical = 1
 metadata/_edit_lock_ = true
+
+[node name="AutoRollButton" parent="." instance=ExtResource("7_x1h30")]
+layout_mode = 0
+offset_left = 560.0
+offset_top = 560.0
+offset_right = 600.0
+offset_bottom = 600.0

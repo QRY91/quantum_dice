@@ -19,6 +19,8 @@ signal fanfare_animation_finished # Emitted when all score/synergy popups and an
 @onready var dice_face_display_container: GridContainer = $DiceFaceScrollContainer/dice_face_display_container
 @onready var inventory_toggle_button: TextureButton = $InventoryToggleButton
 
+@onready var boss_indicator_label: Label = $BossIndicatorLabel
+
 # For easier debugging of the timer
 var fanfare_check_timer: Timer = null 
 # --- Member variables for fanfare tracking ---
@@ -59,9 +61,6 @@ func update_score_target_display(p_score: int, p_target: int):
 	if is_instance_valid(score_label): score_label.text = "Score " + str(p_score)
 	if is_instance_valid(target_label): target_label.text = "Target " + str(p_target)
 
-func update_rolls_display(p_rolls_left: int, p_max_rolls_for_round: int):
-	if is_instance_valid(rolls_label):
-		rolls_label.text = "Rolls " + str(p_rolls_left) + "/" + str(p_max_rolls_for_round)
 
 func update_level_display(p_level: int):
 	if is_instance_valid(level_label): level_label.text = "Level " + str(p_level)
@@ -340,3 +339,50 @@ func _on_inventory_toggle_button_pressed():
 	if not is_instance_valid(dice_face_scroll_container): return
 	dice_face_scroll_container.visible = not dice_face_scroll_container.visible
 	emit_signal("inventory_toggled", dice_face_scroll_container.visible)
+
+func reset_full_game_visuals(): # NEW - Called when a brand new game session starts
+	print("HUD: reset_full_game_visuals called.")
+	reset_round_visuals() # Clear current round stuff
+	update_cornerstone_display(3, false) # Ensure cornerstone visuals are reset
+	show_boss_incoming_indicator(false) # Hide boss indicator
+	# Any other HUD elements specific to a run that need resetting
+
+func update_cornerstone_display(slot_index: int, is_active: bool): # NEW
+	# This is a placeholder. You'll need to identify the UI element for cornerstone slot 3.
+	# For example, if your roll history slots are TextureRects and slot 3 is the child at index 2:
+	if not is_instance_valid(roll_history_display_container): return
+	
+	if slot_index == 3 and roll_history_display_container.get_child_count() > 2:
+		var slot_3_node = roll_history_display_container.get_child(2) # Slot 3 is index 2
+		if slot_3_node is Control: # TextureRect inherits Control
+			if is_active:
+				(slot_3_node as Control).modulate = Color.GOLD # Example: make it glow gold
+				# Could also change a border texture, play an animation, etc.
+				print("HUD: Cornerstone Slot 3 visual activated.")
+			else:
+				(slot_3_node as Control).modulate = Color.WHITE # Reset to default
+				print("HUD: Cornerstone Slot 3 visual deactivated.")
+	else:
+		print("HUD: update_cornerstone_display called for unhandled slot: ", slot_index)
+
+func show_boss_incoming_indicator(show: bool, message: String = "Boss Incoming!"): # NEW
+	if not is_instance_valid(boss_indicator_label):
+		# If you don't have a dedicated label, you could print or use PlayerNotificationSystem
+		if show: PlayerNotificationSystem.display_message(message, 5.0) # Longer duration
+		print("HUD: Boss indicator label not found. Show: %s, Msg: %s" % [str(show), message])
+		return
+
+	if show:
+		boss_indicator_label.text = message
+		boss_indicator_label.tooltip_text = "The next round features a powerful Boss!" # Example tooltip
+		boss_indicator_label.visible = true
+		print("HUD: Boss incoming indicator SHOWN: ", message)
+	else:
+		boss_indicator_label.visible = false
+		print("HUD: Boss incoming indicator HIDDEN.")
+
+
+# --- Ensure rolls display uses explicit counts from Game.gd ---
+func update_rolls_display(p_rolls_available: int, p_max_rolls_this_round: int): # Arguments changed
+	if is_instance_valid(rolls_label):
+		rolls_label.text = "Rolls " + str(p_rolls_available) + "/" + str(p_max_rolls_this_round)
