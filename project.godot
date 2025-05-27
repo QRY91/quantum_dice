@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 GlyphDB="*res://scripts/autoloads/GlyphDB.gd"
 PlayerNotificationSystem="*res://scripts/systems/PlayerNotificationSystem.gd"
+ProgressionManager="*res://scripts/managers/ProgressionManager.gd"
 
 [display]
 

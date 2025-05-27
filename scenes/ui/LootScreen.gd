@@ -3,6 +3,7 @@ extends Control
 
 signal loot_selected(chosen_glyph: GlyphData)
 signal loot_screen_closed # If you add a cancel/skip option
+signal skip_loot_pressed
 
 @onready var title_label: Label = $TitleLabel
 @onready var loot_options_container: HBoxContainer = $LootOptionsContainer
@@ -15,8 +16,14 @@ var loot_option_buttons: Array[Button] = [] # To store references to created but
 # Preload a scene for individual loot option buttons if you make one
 # var loot_button_scene: PackedScene = preload("res://scenes/ui/LootOptionButton.tscn")
 
+# Assuming you have a button named "SkipButton" in LootScreen.tscn
+@onready var skip_button: TextureButton = $SkipButton
 
 func _ready():
+	if is_instance_valid(skip_button):
+		skip_button.pressed.connect(_on_internal_skip_button_pressed)
+	else:
+		printerr("LootScreen: SkipButton node not found!")
 	hide() # Initially hidden, Game.gd will show it.
 	# Ensure the container is empty if we're re-using the scene
 	for child in loot_options_container.get_children():
@@ -118,3 +125,8 @@ func _update_selection_visuals():
 			button.modulate = Color.WHITE # Normal
 	# print("Selected loot index: ", selected_index)
 
+func _on_internal_skip_button_pressed(): # Connected to your actual SkipButton's pressed signal
+	print("LootScreen: Skip button pressed, emitting skip_loot_pressed signal.")
+	emit_signal("skip_loot_pressed")
+	# Typically, the loot screen would hide itself here too, or Game.gd handles it
+	# hide() # Game.gd's _on_loot_screen_closed already hides it.

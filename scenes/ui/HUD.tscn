@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://b4y7wdmde2nco"]
+[gd_scene load_steps=9 format=3 uid="uid://b4y7wdmde2nco"]
 
 [ext_resource type="Script" path="res://scenes/ui/HUD.gd" id="1_ba2h4"]
 [ext_resource type="Theme" uid="uid://s6n6onv1nmd5" path="res://resources/themes/quantum_dice_theme.tres" id="2_2e113"]
@@ -7,6 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://dphoo1xfctjvi" path="res://assets/sprites/inventory.png" id="5_01qn3"]
 [ext_resource type="PackedScene" uid="uid://31yi0q5qj6vs" path="res://scenes/ui/PlaybackSpeedButton.tscn" id="6_quvg6"]
 [ext_resource type="PackedScene" uid="uid://dptegvnfmc884" path="res://scenes/ui/AutoRollButton.tscn" id="7_x1h30"]
+[ext_resource type="Script" path="res://scripts/ui/TrackManager.gd" id="8_hcnr4"]
 
 [node name="HUD" type="Control"]
 layout_mode = 3
@@ -89,17 +90,6 @@ text = "BOSS INCOMING!"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="LastRollDisplay" type="TextureRect" parent="."]
-visible = false
-custom_minimum_size = Vector2(64, 64)
-layout_mode = 0
-offset_left = 303.0
-offset_top = 258.0
-offset_right = 367.0
-offset_bottom = 322.0
-expand_mode = 2
-stretch_mode = 5
-
 [node name="SynergyNotificationLabel" type="Label" parent="."]
 custom_minimum_size = Vector2(320, 80)
 layout_mode = 0
@@ -170,3 +160,9 @@ offset_left = 560.0
 offset_top = 560.0
 offset_right = 600.0
 offset_bottom = 600.0
+
+[node name="LogicTrackDisplay" type="Control" parent="."]
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("8_hcnr4")

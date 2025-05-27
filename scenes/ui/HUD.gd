@@ -11,15 +11,16 @@ signal fanfare_animation_finished # Emitted when all score/synergy popups and an
 @onready var rolls_label: Label = $RollsLabel
 @onready var level_label: Label = $LevelLabel
 
-@onready var last_roll_display: TextureRect = $LastRollDisplay # Separate display, not on button
 @onready var synergy_notification_label: Label = $SynergyNotificationLabel # Used for synergy text
 
-@onready var roll_history_display_container: Control = $RollHistoryDisplayContainer
 @onready var dice_face_scroll_container: ScrollContainer = $DiceFaceScrollContainer
 @onready var dice_face_display_container: GridContainer = $DiceFaceScrollContainer/dice_face_display_container
 @onready var inventory_toggle_button: TextureButton = $InventoryToggleButton
 
 @onready var boss_indicator_label: Label = $BossIndicatorLabel
+
+# Reference to the node that has TrackManager.gd script
+@onready var track_manager: Control = $LogicTrackDisplay
 
 # For easier debugging of the timer
 var fanfare_check_timer: Timer = null 
@@ -27,15 +28,15 @@ var fanfare_check_timer: Timer = null
 var _fanfare_active_tweens: int = 0 # Count of currently running fanfare tweens
 
 # --- Visual Roll History Data ---
-const MAX_VISUAL_HISTORY_SLOTS: int = 15 
+# const MAX_VISUAL_HISTORY_SLOTS: int = 15 
 # roll_history_slot_positions are local positions relative to roll_history_display_container
 # We will get global positions when needed.
-var current_visual_history_index: int = 0
+# var current_visual_history_index: int = 0
 
 # --- Config for Score Popups ---
 const SCORE_POPUP_DURATION: float = 1.2 # How long score popups animate
 const SCORE_POPUP_TRAVEL_Y: float = -70.0 # How far up they move
-const MY_LIGHT_GOLD: Color = Color(1.0, 0.843, 0.0, 0.7) # Example: Color.gold with some transparency or custom mix
+# const MY_LIGHT_GOLD: Color = Color(1.0, 0.843, 0.0, 0.7) # Example: Color.gold with some transparency or custom mix
 
 func _ready():
 	print("HUD _ready: Start.")
@@ -44,11 +45,15 @@ func _ready():
 	if not is_instance_valid(dice_face_display_container):
 		printerr("HUD _ready: dice_face_display_container NOT FOUND.")
 	
-	_initialize_visual_history_slots()
-
+	#_initialize_visual_history_slots()
+	if not is_instance_valid(track_manager): # Check for TrackManager
+		printerr("HUD _ready: LogicTrackDisplay (TrackManager) node NOT FOUND!")
+	else:
+		print("HUD _ready: LogicTrackDisplay (TrackManager) node found.")
+		
 	if is_instance_valid(inventory_toggle_button):
 		inventory_toggle_button.pressed.connect(Callable(self, "_on_inventory_toggle_button_pressed"))
-	else:
+	else:	
 		printerr("HUD _ready: InventoryToggleButton NOT FOUND.")
 	
 	if is_instance_valid(dice_face_scroll_container):
@@ -64,15 +69,12 @@ func update_score_target_display(p_score: int, p_target: int):
 
 func update_level_display(p_level: int):
 	if is_instance_valid(level_label): level_label.text = "Level " + str(p_level)
-
-func update_last_rolled_glyph_display(glyph: GlyphData): # Updates the HUD's static last_roll_display
-	if is_instance_valid(last_roll_display):
-		if is_instance_valid(glyph) and is_instance_valid(glyph.texture):
-			last_roll_display.texture = glyph.texture
-			last_roll_display.visible = true
-		else:
-			last_roll_display.texture = null
-			last_roll_display.visible = false # Hide if no glyph
+	
+func update_rolls_display(p_rolls_available: int, p_max_rolls_this_round: int):
+	if is_instance_valid(rolls_label):
+		rolls_label.text = "Rolls " + str(p_rolls_available) + "/" + str(p_max_rolls_this_round)
+	else:
+		printerr("HUD: rolls_label not valid in update_rolls_display")
 
 func show_synergy_message(full_message: String): # Used by fanfare now
 	if is_instance_valid(synergy_notification_label) and not full_message.is_empty():
@@ -244,145 +246,66 @@ func _create_score_popup_label(text_to_display: String, start_global_pos: Vector
 	return popup_tween
 
 
-func get_next_history_slot_global_position() -> Vector2:
-	if not is_instance_valid(roll_history_display_container):
-		printerr("HUD: RollHistoryDisplayContainer not valid for getting slot position.")
-		return get_viewport_rect().size / 2.0 
-
-	if current_visual_history_index < roll_history_display_container.get_child_count():
-		var slot_node = roll_history_display_container.get_child(current_visual_history_index)
-		if slot_node is Control:
-			var slot_control = slot_node as Control
-			# Ensure the slot_control has the correct size (e.g., 80x80)
-			# Return the global center of this slot
-			return slot_control.global_position + (slot_control.size / 2.0)
-		else:
-			printerr("HUD: History slot node is not a Control.")
-	else:
-		printerr("HUD: current_visual_history_index out of bounds for slot positions.")
-	
+func get_next_history_slot_global_position() -> Vector2: # Game.gd uses this
+	if is_instance_valid(track_manager) and track_manager.has_method("get_global_position_of_next_slot"):
+		return track_manager.get_global_position_of_next_slot()
+	printerr("HUD: TrackManager not found or no get_global_position_of_next_slot method for get_next_history_slot_global_position.")
 	return get_viewport_rect().size / 2.0 # Fallback
+# Make sure there's NO duplicated code block after this function and before the next one.
 
-# --- Visual History Management ---
-
+# --- Visual History Management (delegated to TrackManager) ---
 func add_glyph_to_visual_history(glyph: GlyphData): # Called by Game.gd AFTER glyph animates to slot
-	if not is_instance_valid(roll_history_display_container): return
-	if not is_instance_valid(glyph): return
-		
-	if current_visual_history_index < MAX_VISUAL_HISTORY_SLOTS and \
-	   current_visual_history_index < roll_history_display_container.get_child_count():
-		
-		var history_item_node = roll_history_display_container.get_child(current_visual_history_index)
-		if history_item_node is TextureRect:
-			var item_rect := history_item_node as TextureRect
-			item_rect.texture = glyph.texture
-			item_rect.visible = true # Make the static slot visible
-		current_visual_history_index += 1
-	# else: print("HUD: Visual history slots full or index issue.")
+	if is_instance_valid(track_manager) and track_manager.has_method("place_glyph_on_next_available_slot"):
+		track_manager.place_glyph_on_next_available_slot(glyph)
+	else:
+		printerr("HUD: TrackManager not found or no place_glyph_on_next_available_slot method.")
 
+func reset_full_game_visuals():
+	print("HUD: reset_full_game_visuals called.")
+	# TrackManager's clear_track_for_new_round now also deactivates slots.
+	# We also need to reset cornerstone unlocked states visually.
+	if is_instance_valid(track_manager) and track_manager.has_method("clear_track_for_new_round"):
+		track_manager.clear_track_for_new_round() # Clears glyphs, sets to EMPTY/CS_EMPTY then INACTIVE
+	if is_instance_valid(track_manager) and track_manager.has_method("update_specific_cornerstone_logic_unlocked"):
+		track_manager.update_specific_cornerstone_logic_unlocked(2, false) # Slot 3 (index 2) is locked
+	show_boss_incoming_indicator(false)
 
 func reset_round_visuals():
-	current_visual_history_index = 0
-	if is_instance_valid(roll_history_display_container):
-		for i in range(roll_history_display_container.get_child_count()):
-			var child_node = roll_history_display_container.get_child(i)
-			if child_node is TextureRect:
-				var item_rect := child_node as TextureRect
-				item_rect.visible = false # Hide placeholder
-				item_rect.texture = null  # Clear texture
+	if is_instance_valid(synergy_notification_label): synergy_notification_label.text = ""
 	
-	if is_instance_valid(last_roll_display):
-		last_roll_display.texture = null
-		last_roll_display.visible = false
-	
-	if is_instance_valid(synergy_notification_label):
-		synergy_notification_label.text = ""
-	
-	# Score label will be updated by Game.gd with initial round score.
-
-# --- Internal HUD Functions ---
-
-func _initialize_visual_history_slots():
-	if not is_instance_valid(roll_history_display_container):
-		printerr("HUD: RollHistoryDisplayContainer not found!")
-		return
-	for child in roll_history_display_container.get_children():
-		child.queue_free() # Clear previous if any (e.g. editor placeholders)
-
-	# These positions are relative to the roll_history_display_container itself
-	var slot_positions_local = [
-		Vector2(240, 480), Vector2(160, 480), Vector2(80, 480),
-		Vector2(80, 400), Vector2(80, 320), Vector2(80, 240), Vector2(80, 160), Vector2(80, 80),
-		Vector2(160, 80), Vector2(240, 80), Vector2(320, 80), Vector2(400, 80), Vector2(480, 80),
-		Vector2(480, 160), Vector2(480, 240)
-	] # These are the same as Game.gd's old ones, assuming they are local to the container now.
-	# If roll_history_display_container is at (0,0) of the logo, these are fine.
-	# Otherwise, these should be adjusted or calculated based on the logo image.
-
-	for i in range(MAX_VISUAL_HISTORY_SLOTS):
-		var history_item_rect := TextureRect.new()
-		history_item_rect.custom_minimum_size = Vector2(80, 80) # As per context doc
-		history_item_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		history_item_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		
-		if i < slot_positions_local.size():
-			history_item_rect.position = slot_positions_local[i]
-		else: # Should not happen if MAX_VISUAL_HISTORY_SLOTS matches array
-			history_item_rect.position = Vector2(-200, -200) # Hide off-screen
-			
-		history_item_rect.visible = false # Start hidden, no texture
-		roll_history_display_container.add_child(history_item_rect)
-	print("HUD: Visual history display initialized with ", roll_history_display_container.get_child_count(), " slots.")
-
-
-func _on_inventory_toggle_button_pressed():
-	if not is_instance_valid(dice_face_scroll_container): return
-	dice_face_scroll_container.visible = not dice_face_scroll_container.visible
-	emit_signal("inventory_toggled", dice_face_scroll_container.visible)
-
-func reset_full_game_visuals(): # NEW - Called when a brand new game session starts
-	print("HUD: reset_full_game_visuals called.")
-	reset_round_visuals() # Clear current round stuff
-	update_cornerstone_display(3, false) # Ensure cornerstone visuals are reset
-	show_boss_incoming_indicator(false) # Hide boss indicator
-	# Any other HUD elements specific to a run that need resetting
-
-func update_cornerstone_display(slot_index: int, is_active: bool): # NEW
-	# This is a placeholder. You'll need to identify the UI element for cornerstone slot 3.
-	# For example, if your roll history slots are TextureRects and slot 3 is the child at index 2:
-	if not is_instance_valid(roll_history_display_container): return
-	
-	if slot_index == 3 and roll_history_display_container.get_child_count() > 2:
-		var slot_3_node = roll_history_display_container.get_child(2) # Slot 3 is index 2
-		if slot_3_node is Control: # TextureRect inherits Control
-			if is_active:
-				(slot_3_node as Control).modulate = Color.GOLD # Example: make it glow gold
-				# Could also change a border texture, play an animation, etc.
-				print("HUD: Cornerstone Slot 3 visual activated.")
-			else:
-				(slot_3_node as Control).modulate = Color.WHITE # Reset to default
-				print("HUD: Cornerstone Slot 3 visual deactivated.")
+	if is_instance_valid(track_manager) and track_manager.has_method("clear_track_for_new_round"):
+		track_manager.clear_track_for_new_round() 
+		# Game.gd will call activate_slots_for_round next
 	else:
-		print("HUD: update_cornerstone_display called for unhandled slot: ", slot_index)
+		printerr("HUD: TrackManager not found or no clear_track_for_new_round method.")
 
-func show_boss_incoming_indicator(show: bool, message: String = "Boss Incoming!"): # NEW
+func activate_track_slots(num_slots_to_activate: int): # NEW function called by Game.gd
+	if is_instance_valid(track_manager) and track_manager.has_method("activate_slots_for_round"):
+		track_manager.activate_slots_for_round(num_slots_to_activate)
+	else:
+		printerr("HUD: TrackManager not found or no activate_slots_for_round method.")
+
+func update_cornerstone_display(slot_index_zero_based: int, is_logic_unlocked: bool): # Called by Game.gd
+	if is_instance_valid(track_manager) and track_manager.has_method("update_specific_cornerstone_logic_unlocked"):
+		track_manager.update_specific_cornerstone_logic_unlocked(slot_index_zero_based, is_logic_unlocked)
+	else:
+		printerr("HUD: TrackManager not found for update_cornerstone_display (update_specific_cornerstone_logic_unlocked).")
+func show_boss_incoming_indicator(show: bool, message: String = "Boss Incoming!"):
 	if not is_instance_valid(boss_indicator_label):
-		# If you don't have a dedicated label, you could print or use PlayerNotificationSystem
-		if show: PlayerNotificationSystem.display_message(message, 5.0) # Longer duration
-		print("HUD: Boss indicator label not found. Show: %s, Msg: %s" % [str(show), message])
+		if show: PlayerNotificationSystem.display_message(message, 5.0)
+		# print("HUD: Boss indicator label not found. Show: %s, Msg: %s" % [str(show), message]) # Already printed by Game.gd
 		return
 
 	if show:
 		boss_indicator_label.text = message
-		boss_indicator_label.tooltip_text = "The next round features a powerful Boss!" # Example tooltip
+		boss_indicator_label.tooltip_text = "The next round features a powerful Boss!"
 		boss_indicator_label.visible = true
 		print("HUD: Boss incoming indicator SHOWN: ", message)
 	else:
 		boss_indicator_label.visible = false
 		print("HUD: Boss incoming indicator HIDDEN.")
 
-
-# --- Ensure rolls display uses explicit counts from Game.gd ---
-func update_rolls_display(p_rolls_available: int, p_max_rolls_this_round: int): # Arguments changed
-	if is_instance_valid(rolls_label):
-		rolls_label.text = "Rolls " + str(p_rolls_available) + "/" + str(p_max_rolls_this_round)
+func _on_inventory_toggle_button_pressed():
+	if not is_instance_valid(dice_face_scroll_container): return
+	dice_face_scroll_container.visible = not dice_face_scroll_container.visible
+	emit_signal("inventory_toggled", dice_face_scroll_container.visible)

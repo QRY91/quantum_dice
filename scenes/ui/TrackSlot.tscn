@@ -1,0 +1,29 @@
+[gd_scene load_steps=2 format=3 uid="uid://cclf7odbulx5s"]
+
+[ext_resource type="Script" path="res://scenes/ui/TrackSlot.gd" id="1_eu8pb"]
+
+[node name="TrackSlot" type="Control"]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_eu8pb")
+
+[node name="SlotBackground" type="TextureRect" parent="."]
+modulate = Color(0.580392, 0.580392, 0.580392, 1)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="GlyphDisplay" type="TextureRect" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+stretch_mode = 5
