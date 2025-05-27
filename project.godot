@@ -21,6 +21,8 @@ GlyphDB="*res://scripts/autoloads/GlyphDB.gd"
 PlayerNotificationSystem="*res://scripts/systems/PlayerNotificationSystem.gd"
 ProgressionManager="*res://scripts/managers/ProgressionManager.gd"
 ScoreManager="*res://scripts/managers/ScoreManager.gd"
+BoonManager="*res://scripts/managers/BoonManager.gd"
+PlayerDiceManager="*res://scripts/managers/PlayerDiceManager.gd"
 
 [display]
 

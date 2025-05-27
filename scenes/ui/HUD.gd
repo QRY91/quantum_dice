@@ -55,6 +55,10 @@ func _ready():
 		inventory_toggle_button.pressed.connect(Callable(self, "_on_inventory_toggle_button_pressed"))
 	else:	
 		printerr("HUD _ready: InventoryToggleButton NOT FOUND.")
+		
+	if PlayerDiceManager.has_signal("player_dice_changed"):
+		PlayerDiceManager.player_dice_changed.connect(Callable(self, "_on_player_dice_manager_changed"))
+		print("HUD: Connected to PlayerDiceManager.player_dice_changed signal.")
 	
 	if is_instance_valid(dice_face_scroll_container):
 		dice_face_scroll_container.visible = false
@@ -309,3 +313,7 @@ func _on_inventory_toggle_button_pressed():
 	if not is_instance_valid(dice_face_scroll_container): return
 	dice_face_scroll_container.visible = not dice_face_scroll_container.visible
 	emit_signal("inventory_toggled", dice_face_scroll_container.visible)
+
+func _on_player_dice_manager_changed(new_dice_array: Array[GlyphData]):
+	print("HUD: PlayerDiceManager reported dice changed. Updating inventory display.")
+	update_dice_inventory_display(new_dice_array)

@@ -32,7 +32,6 @@ var current_success_tier: SuccessTier = SuccessTier.NONE
 var enable_debug_rolls: bool = false
 
 # --- Player's DICE & Roll History ---
-var current_player_dice: Array[GlyphData] = []
 var roll_history: Array[GlyphData] = []
 var last_rolled_glyph: GlyphData = null
 
@@ -50,14 +49,13 @@ const HISTORY_SLOT_GLYPH_SIZE: Vector2 = Vector2(80, 80)
 
 # --- Synergy Tracking & Boons (Kept in Game.gd for now, could be next refactor) ---
 var synergies_fired_this_round: Dictionary = {}
-var RUNE_PHRASES: Dictionary = {
-	"SUN_POWER": { "id": "sun_power", "display_name": "Sun's Radiance", "runes_required": ["rune_sowilo", "rune_fehu"], "boon_description": "All 'dice' type glyphs score +2 points for the rest of the run."},
-	"WATER_FLOW": { "id": "water_flow", "display_name": "Water's Flow", "runes_required": ["rune_laguz", "rune_ansuz"], "boon_description": "Gain +1 max roll per round for the rest of the run (up to a new cap)."}
-}
-var active_boons: Dictionary = {}
-var run_score_multiplier_boon: float = 1.0
-var extra_points_per_dice_glyph_boon: int = 0
-var extra_max_rolls_boon: int = 0
+var run_score_multiplier_boon: float = 1.0 # Example, if Game.gd used this directly
+var extra_points_per_dice_glyph_boon: int = 0 # Game.gd uses this in _calculate_score_and_synergies
+var extra_max_rolls_boon: int = 0       # Game.gd uses this in _start_new_round_setup
+var active_boons: Dictionary = {} # Game.gd's list of *which* boons are active (IDs)
+								# This is set by _evaluate_synergies_and_boons
+								# based on BoonManager's activation.
+
 
 # --- Animation Control ---
 @onready var roll_animation_controller: Node
@@ -179,7 +177,7 @@ func _ready():
 	if ProgressionManager.has_signal("boss_indicator_update"): ProgressionManager.boss_indicator_update.connect(Callable(self, "_on_progression_boss_indicator_update"))
 
 	current_game_roll_state = GameRollState.MENU
-
+	pass
 
 func _process(delta):
 	match current_game_roll_state:
@@ -212,19 +210,27 @@ func _process(delta):
 			if is_instance_valid(game_over_instance) and not game_over_instance.visible:
 				game_over_instance.show_screen(ScoreManager.get_total_accumulated_score(), current_round_number_local)
 			pass
-
+	pass
 # --- Progression Backbone Integration ---
 func _initialize_new_game_run_setup():
 	print("Game: Initializing new game run setup...")
 	ProgressionManager.initialize_new_run()
 	ScoreManager.reset_for_new_run()
+	BoonManager.reset_for_new_run()
+	PlayerDiceManager.reset_for_new_run()
+	
 	_reset_boons_and_effects()
+	
 	auto_roll_enabled = false
 	if is_instance_valid(auto_roll_button) and auto_roll_button.has_method("set_auto_roll_state"): auto_roll_button.set_auto_roll_state(false)
 	if is_instance_valid(auto_roll_delay_timer): auto_roll_delay_timer.stop()
-	current_player_dice.clear() # Could be PlayerDiceManager.reset()
-	if GlyphDB and not GlyphDB.starting_dice_configuration.is_empty(): current_player_dice = GlyphDB.starting_dice_configuration.duplicate(true)
-	if is_instance_valid(hud_instance) and hud_instance.has_method("reset_full_game_visuals"): hud_instance.reset_full_game_visuals()
+	
+	if is_instance_valid(hud_instance):
+		if hud_instance.has_method("reset_full_game_visuals"): hud_instance.reset_full_game_visuals()
+		# Update dice inventory display after PlayerDiceManager has initialized
+		if hud_instance.has_method("update_dice_inventory_display"):
+			hud_instance.update_dice_inventory_display(PlayerDiceManager.get_current_dice())
+			
 	current_game_roll_state = GameRollState.INITIALIZING_ROUND
 	call_deferred("_start_new_round_setup")
 
@@ -234,7 +240,9 @@ func _start_new_round_setup():
 	max_rolls_for_current_round = round_config.max_rolls
 	target_score_for_current_round = round_config.target_score
 	current_game_phase_local = round_config.current_phase_for_round
+	extra_max_rolls_boon = BoonManager.get_extra_max_rolls()
 	max_rolls_for_current_round = min(max_rolls_for_current_round + extra_max_rolls_boon, ProgressionManager.MAX_ROLLS_CAP_PM + extra_max_rolls_boon)
+
 	ScoreManager.reset_for_new_round()
 	player_current_rolls_this_round = 0
 	roll_history.clear(); synergies_fired_this_round.clear(); last_rolled_glyph = null
@@ -242,7 +250,9 @@ func _start_new_round_setup():
 	if is_instance_valid(hud_instance): 
 		if hud_instance.has_method("reset_round_visuals"): hud_instance.reset_round_visuals()
 		if hud_instance.has_method("activate_track_slots"): hud_instance.activate_track_slots(max_rolls_for_current_round)
-		hud_instance.update_dice_inventory_display(current_player_dice)
+		# Update dice inventory if it wasn't updated in _initialize_new_game_run_setup or if dice could change between rounds
+		if hud_instance.has_method("update_dice_inventory_display"):
+			hud_instance.update_dice_inventory_display(PlayerDiceManager.get_current_dice())
 	current_game_roll_state = GameRollState.PLAYING
 	_update_hud_static_elements()
 
@@ -280,79 +290,83 @@ func _update_hud_static_elements():
 	hud_instance.update_score_target_display(ScoreManager.get_current_round_score(), target_score_for_current_round)
 	hud_instance.update_level_display(current_round_number_local)
 
+# --- Roll Processing Logic ---
+func _perform_roll(): # Selects the glyph
+	print("Game: _perform_roll() CALLED.")
+	last_rolled_glyph = PlayerDiceManager.get_random_glyph_from_dice() # Get from manager
+
+	if not is_instance_valid(last_rolled_glyph):
+		printerr("CRITICAL ERROR in _perform_roll: PlayerDiceManager returned invalid glyph!")
+		# This implies PlayerDiceManager.current_player_dice was empty or had invalid entries
+	else:
+		print("Game: _perform_roll() - Rolled: ", last_rolled_glyph.display_name)
+
 func _calculate_score_and_synergies(p_history_for_check: Array[GlyphData]) -> Dictionary:
 	var points_from_roll: int = 0
 	var points_from_synergy: int = 0
-	var synergy_messages: Array[String] = []
-	current_success_tier = SuccessTier.NONE # Reset for this roll
+	var synergy_messages: Array[String] = [] # For non-boon synergy messages
+	current_success_tier = SuccessTier.NONE
 
 	if not is_instance_valid(last_rolled_glyph):
-		printerr("Game: _calculate_score_and_synergies - last_rolled_glyph is invalid.")
 		return {"points_from_roll":0, "points_from_synergy":0, "synergy_messages":[]}
 	
 	points_from_roll = last_rolled_glyph.value
-	if last_rolled_glyph.type == "dice" and active_boons.has("sun_power"): # Assuming active_boons is still managed in Game.gd
+	# Query BoonManager for dice glyph bonus
+	if last_rolled_glyph.type == "dice":
 		points_from_roll += extra_points_per_dice_glyph_boon
 	
 	var current_logical_slot_index = p_history_for_check.size() - 1
-	# Query ProgressionManager for cornerstone state
-	if ProgressionManager.is_cornerstone_effect_active(2) and current_logical_slot_index == 2: # Slot 3 (index 2)
+	if ProgressionManager.is_cornerstone_effect_active(2) and current_logical_slot_index == 2:
 		points_from_roll += CORNERSTONE_SLOT_3_BONUS 
 		PlayerNotificationSystem.display_message("Cornerstone Slot 3 Bonus: +%d Score!" % CORNERSTONE_SLOT_3_BONUS)
-		# print("Game: Cornerstone Slot 3 bonus applied on slot index ", current_logical_slot_index) # Already printed by PM or here
 
 	ScoreManager.add_to_round_score(points_from_roll)
 
-	var synergy_result = _evaluate_synergies_and_boons(p_history_for_check)
-	points_from_synergy = synergy_result.bonus_score
-	synergy_messages = synergy_result.messages
+	# _evaluate_synergies_and_boons will now also handle boon activation messages
+	var eval_result = _evaluate_synergies_and_boons(p_history_for_check)
+	points_from_synergy = eval_result.bonus_score
+	synergy_messages = eval_result.messages # This now includes boon activation messages too
+	
 	if points_from_synergy > 0: 
-		ScoreManager.add_to_round_score(points_from_synergy)
+		ScoreManager.add_to_round_score(points_from_synergy) # Boons might grant score directly or through effects
 	
 	ScoreManager.add_to_total_score(points_from_roll + points_from_synergy)
 
 	var total_this_roll = points_from_roll + points_from_synergy
-	
-	# CORRECTED if/elif structure:
-	if total_this_roll >= 25: 
-		current_success_tier = SuccessTier.JACKPOT
-	elif total_this_roll >= 15: 
-		current_success_tier = SuccessTier.MAJOR
-	elif total_this_roll >= 8: 
-		current_success_tier = SuccessTier.MEDIUM
-	elif total_this_roll > 0: # Ensures 0 or negative doesn't count as MINOR
-		current_success_tier = SuccessTier.MINOR
-	# else: current_success_tier remains SuccessTier.NONE (implicitly)
+	# ... (determine current_success_tier) ...
 	
 	player_current_rolls_this_round += 1
-	print("Game: Roll %d/%d processed. BasePts:%d, SynPts:%d, Tier:%s" % [
-		player_current_rolls_this_round, max_rolls_for_current_round,
-		points_from_roll, points_from_synergy, SuccessTier.keys()[current_success_tier]
-	])
-	return {
-		"points_from_roll": points_from_roll,
-		"points_from_synergy": points_from_synergy,
-		"synergy_messages": synergy_messages
-	}
+	# ... (print roll processed) ...
+	return {"points_from_roll":points_from_roll, "points_from_synergy":points_from_synergy, "synergy_messages":synergy_messages}
 
 func _evaluate_synergies_and_boons(p_history_for_check: Array[GlyphData]) -> Dictionary:
-	var total_synergy_bonus: int = 0; var messages: Array[String] = []
+	var total_synergy_bonus: int = 0
+	var messages: Array[String] = [] # This will collect all messages (synergies + boons)
+	
 	if p_history_for_check.is_empty(): return {"bonus_score": 0, "messages": []}
+
+	# --- Standard Synergies (as before, using p_history_for_check) ---
+	if not synergies_fired_this_round.has("numeric_double"):
+		# ... (numeric double logic) ...
+		# if triggered: messages.append("NUMERIC DOUBLE! +5")
+		pass # Keep your existing synergy logic here, appending to 'messages'
+	# ... (other standard synergies: roman gathering, card pair, simple flush) ...
+	# Example for one:
 	if not synergies_fired_this_round.has("numeric_double"):
 		var d_seen:Dictionary={}; for r in p_history_for_check: if r.type=="dice": d_seen[r.value]=d_seen.get(r.value,0)+1; if d_seen[r.value]>=2: total_synergy_bonus+=5;synergies_fired_this_round["numeric_double"]=true;messages.append("NUMERIC DOUBLE! +5");break
-	if not synergies_fired_this_round.has("roman_gathering"):
-		var rg_c:int=0; for r in p_history_for_check: if r.type=="roman": rg_c+=1
-		if rg_c>=2: total_synergy_bonus+=10;synergies_fired_this_round["roman_gathering"]=true;messages.append("ROMAN GATHERING! +10")
-	if not synergies_fired_this_round.has("card_pair"):
-		var c_seen:Dictionary={}; for r in p_history_for_check: if r.type=="card": c_seen[r.value]=c_seen.get(r.value,0)+1; if c_seen[r.value]>=2: total_synergy_bonus+=8;synergies_fired_this_round["card_pair"]=true;messages.append("CARD PAIR! +8");break
-	if not synergies_fired_this_round.has("simple_flush"):
-		var s_c:Dictionary={"hearts":0,"diamonds":0,"clubs":0,"spades":0}; for r in p_history_for_check: if r.type=="card" and is_instance_valid(r) and r.suit!="": if s_c.has(r.suit):s_c[r.suit]+=1
-		for s_n in s_c: if s_c[s_n]>=3: total_synergy_bonus+=15;synergies_fired_this_round["simple_flush"]=true;messages.append("FLUSH (%s)! +15"%s_n.capitalize());break
-	var runes_hist:Array[String]=[]; for r in p_history_for_check: if r.type=="rune" and is_instance_valid(r) and r.id!="": runes_hist.append(r.id)
-	if not runes_hist.is_empty():
-		for pk in RUNE_PHRASES: var pd=RUNE_PHRASES[pk]; var pid=pd.id; if not active_boons.has(pid):
-			var found_all=true; for req_rid in pd.runes_required: if not req_rid in runes_hist: found_all=false;break
-			if found_all: active_boons[pid]=true;messages.append("BOON: %s! (%s)"%[pd.display_name,pd.boon_description]);_apply_boon_effect(pid)
+
+
+	# --- Check for Rune Phrase Boons via BoonManager ---
+	var current_runes_in_history_ids: Array[String]=[]
+	for roll_data in p_history_for_check:
+		if roll_data.type == "rune" and is_instance_valid(roll_data) and roll_data.id != "":
+			current_runes_in_history_ids.append(roll_data.id)
+	
+	var newly_activated_boons_info: Array[Dictionary] = BoonManager.check_and_activate_rune_phrases(current_runes_in_history_ids)
+	for boon_info in newly_activated_boons_info:
+		messages.append("BOON: %s! (%s)" % [boon_info.name, boon_info.description])
+		active_boons[boon_info.name] = true # Update Game.gd's local list of active boon IDs
+		_apply_boon_effect(boon_info.name) # Call Game.gd's function to update its cached effect values
 	return {"bonus_score": total_synergy_bonus, "messages": messages}
 
 # --- HUD fanfare finished signal handler ---
@@ -363,7 +377,6 @@ func _on_hud_fanfare_animation_finished(): # This is connected to HUD's signal
 			roll_animation_controller.hud_fanfare_has_completed() # Tell controller to proceed
 	else:
 		print("Game: HUD fanfare finished, but GameRollState is not AWAITING_ANIMATION_COMPLETION. State: ", GameRollState.keys()[current_game_roll_state])
-		
 
 func _finalize_roll_logic_and_proceed():
 	if is_instance_valid(last_rolled_glyph): roll_history.append(last_rolled_glyph)
@@ -377,9 +390,6 @@ func _finalize_roll_logic_and_proceed():
 		if is_instance_valid(roll_button): roll_button.disabled = false
 		_try_start_auto_roll()
 
-func add_glyph_to_player_dice(glyph_data: GlyphData):
-	if glyph_data and glyph_data is GlyphData: current_player_dice.append(glyph_data)
-	if is_instance_valid(hud_instance): hud_instance.update_dice_inventory_display(current_player_dice)
 
 func _on_main_menu_start_game():
 	if is_instance_valid(main_menu_instance): main_menu_instance.hide()
@@ -393,15 +403,18 @@ func _prepare_and_show_loot_screen():
 
 func _on_loot_selected(chosen_glyph: GlyphData):
 	if is_instance_valid(loot_screen_instance): loot_screen_instance.hide()
-	add_glyph_to_player_dice(chosen_glyph); ScoreManager.add_to_total_score(50); play_sound(sfx_glyph_added)
+	PlayerDiceManager.add_glyph_to_dice(chosen_glyph) # Call manager
+	ScoreManager.add_to_total_score(50)
+	play_sound(sfx_glyph_added)
 	call_deferred("_start_new_round_setup")
-
 func _on_loot_screen_closed():
 	if is_instance_valid(loot_screen_instance): loot_screen_instance.hide()
 	PlayerNotificationSystem.display_message("Loot skipped."); call_deferred("_start_new_round_setup")
 
-func _on_hud_inventory_toggled(is_inventory_visible: bool):
-	if is_inventory_visible and is_instance_valid(hud_instance): hud_instance.update_dice_inventory_display(current_player_dice)
+func _on_hud_inventory_toggled(is_inventory_visible: bool): # HUD needs dice info
+	if is_inventory_visible and is_instance_valid(hud_instance):
+		if hud_instance.has_method("update_dice_inventory_display"):
+			hud_instance.update_dice_inventory_display(PlayerDiceManager.get_current_dice())
 
 func _on_game_over_retry_pressed():
 	if is_instance_valid(game_over_instance): game_over_instance.hide()
@@ -412,11 +425,7 @@ func _on_game_over_main_menu_pressed():
 
 # REMOVED _load_high_score and _save_high_score
 
-func _apply_boon_effect(boon_id: String):
-	if boon_id=="sun_power": extra_points_per_dice_glyph_boon=2
-	elif boon_id=="water_flow": extra_max_rolls_boon+=1; _update_hud_static_elements()
-func _reset_boons_and_effects():
-	active_boons.clear();run_score_multiplier_boon=1.0;extra_points_per_dice_glyph_boon=0;extra_max_rolls_boon=0
+
 
 func play_sound(sound_resource: AudioStream, volume: int = 0):
 	if sfx_player and sound_resource: sfx_player.stream=sound_resource;sfx_player.volume_db=volume;sfx_player.play()
@@ -471,24 +480,7 @@ func _on_roll_button_pressed():
 			if is_instance_valid(roll_button): roll_button.disabled = (player_current_rolls_this_round >= max_rolls_for_current_round)
 	else:
 		print("Game: Cannot roll. State:%s, Rolls available:%d" % [GameRollState.keys()[current_game_roll_state], (max_rolls_for_current_round - player_current_rolls_this_round)])
-func _perform_roll(): # Selects the glyph
-	print("Game: _perform_roll() CALLED.") # DEBUG
-	if current_player_dice.is_empty():
-		printerr("CRITICAL ERROR in _perform_roll: Player dice is empty! Cannot roll.")
-		last_rolled_glyph = null # Ensure last_rolled_glyph is null if we can't roll
-		# Potentially force a game over or error state here if dice should never be empty
-		return
 
-	var rolled_glyph_index = randi() % current_player_dice.size()
-	last_rolled_glyph = current_player_dice[rolled_glyph_index]
-
-	if not is_instance_valid(last_rolled_glyph):
-		printerr("CRITICAL ERROR in _perform_roll: Rolled glyph at index %d is invalid!" % rolled_glyph_index)
-		last_rolled_glyph = null # Ensure it's null on error
-		# This is a serious data issue if it happens.
-	else:
-		print("Game: _perform_roll() - Rolled: ", last_rolled_glyph.display_name)
-		
 # --- Callbacks for RollAnimationController Signals ---
 func _on_rac_logical_roll_requested():
 	print("Game: RollAnimationController requested logical roll.")
@@ -584,3 +576,29 @@ func _on_rac_full_animation_sequence_complete(final_glyph_data: GlyphData):
 		hud_instance.add_glyph_to_visual_history(last_rolled_glyph) # Update HUD's visual track
 	
 	_finalize_roll_logic_and_proceed() # This updates logical history, checks for round end
+
+func _reset_boons_and_effects(): # This belongs in Game.gd
+	print("Game: Resetting local active_boons list and cached boon effect variables.")
+	active_boons.clear() # Game.gd's list of active boon IDs for the current run
+	# Reset Game.gd's cached values for boon effects
+	extra_points_per_dice_glyph_boon = 0
+	extra_max_rolls_boon = 0
+	# run_score_multiplier_boon = 1.0 # If Game.gd had this for direct use
+
+func _apply_boon_effect(boon_id: String): # Called by _evaluate_synergies_and_boons
+	print("Game: Applying/caching effect for boon_id: ", boon_id)
+	# This function now updates Game.gd's local convenience/cache variables
+	# by querying the authoritative source in BoonManager.
+	# This is called AFTER BoonManager has already activated the boon and updated its own state.
+	if boon_id == "sun_power":
+		extra_points_per_dice_glyph_boon = BoonManager.get_extra_points_for_dice_glyph()
+		print("Game: Updated local extra_points_per_dice_glyph_boon to: ", extra_points_per_dice_glyph_boon)
+	elif boon_id == "water_flow":
+		# Get the CUMULATIVE extra rolls from BoonManager
+		var current_bm_extra_rolls = BoonManager.get_extra_max_rolls()
+		if current_bm_extra_rolls != extra_max_rolls_boon: # Only update if changed
+			extra_max_rolls_boon = current_bm_extra_rolls
+			print("Game: Updated local extra_max_rolls_boon to: ", extra_max_rolls_boon)
+			_update_hud_static_elements() # Max rolls might have changed for HUD display
+	# No need to call _update_hud_static_elements for sun_power as it affects score calculation time.
+
