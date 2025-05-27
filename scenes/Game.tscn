@@ -1,4 +1,4 @@
-[gd_scene load_steps=95 format=3 uid="uid://dec5xjt3ywnvf"]
+[gd_scene load_steps=96 format=3 uid="uid://dec5xjt3ywnvf"]
 
 [ext_resource type="Script" path="res://scenes/Game.gd" id="1_0u5nu"]
 [ext_resource type="Shader" path="res://shaders/palette_swap.gdshader" id="2_3g2yk"]
@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://rd6v618wd54a" path="res://assets/sprites/roll_animation_frames/roll_animation_sheet.png" id="2_rpg7d"]
 [ext_resource type="Theme" uid="uid://s6n6onv1nmd5" path="res://resources/themes/quantum_dice_theme.tres" id="3_tba6y"]
 [ext_resource type="Texture2D" uid="uid://bsargv3ys0fds" path="res://assets/sprites/game_ui_border_white.png" id="6_qrr6q"]
+[ext_resource type="PackedScene" uid="uid://byqllwnq7yhpu" path="res://scenes/animation/RollAnimationController.tscn" id="7_hktyb"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_i30on"]
 shader = ExtResource("2_3g2yk")
@@ -691,3 +692,5 @@ wait_time = 0.1
 one_shot = true
 
 [node name="SFXPlayer" type="AudioStreamPlayer" parent="."]
+
+[node name="RollAnimationController" parent="." instance=ExtResource("7_hktyb")]

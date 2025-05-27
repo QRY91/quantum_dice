@@ -1,6 +1,9 @@
-[gd_scene format=3 uid="uid://byqllwnq7yhpu"]
+[gd_scene load_steps=2 format=3 uid="uid://byqllwnq7yhpu"]
+
+[ext_resource type="Script" path="res://scenes/animation/RollAnimationController.gd" id="1_rafqf"]
 
 [node name="RollAnimationController" type="Node"]
+script = ExtResource("1_rafqf")
 
 [node name="DiceRollEffectTimer" type="Timer" parent="."]
 

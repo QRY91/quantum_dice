@@ -1,24 +1,20 @@
 # res://scripts/Game.gd
-# TABS FOR INDENTATION
-class_name Game
+class_name Game # Keep this for RollAnimationController to access Game.ROLL_BUTTON_GLYPH_SIZE
 extends Node2D
 
 # --- Game Moment-to-Moment State Enum ---
 enum GameRollState {
 	MENU,
-	INITIALIZING_GAME, # Sets up a whole new run
-	INITIALIZING_ROUND, # Sets up parameters for the current round
+	INITIALIZING_GAME,
+	INITIALIZING_ROUND,
 	PLAYING,
-	ROLLING,
-	RESULT_REVEAL,
-	FANFARE_ANIMATION,
-	GLYPH_TO_HISTORY,
+	AWAITING_ANIMATION_COMPLETION,
 	LOOT_SELECTION,
 	GAME_OVER
 }
 var current_game_roll_state: GameRollState = GameRollState.MENU
 
-# --- Game Progression Phase Enum (Still defined here for local use if needed, PM uses its own copy) ---
+# --- Game Progression Phase Enum ---
 enum GamePhase {
 	PRE_BOSS,
 	FIRST_BOSS_ENCOUNTER,
@@ -64,9 +60,7 @@ var extra_points_per_dice_glyph_boon: int = 0
 var extra_max_rolls_boon: int = 0
 
 # --- Animation Control ---
-var animating_glyph_node: TextureRect = null
-var reveal_on_button_timer: Timer
-const REVEAL_DURATION: float = 0.75
+@onready var roll_animation_controller: Node
 
 # --- CORE UI Node References ---
 @onready var roll_button: TextureButton = $UICanvas/MainGameUI/AnimatedRollButton
@@ -98,10 +92,32 @@ var auto_roll_enabled: bool = false
 
 
 func _ready():
+# Get reference to the RollAnimationController node
+	roll_animation_controller = get_node_or_null("RollAnimationController")
+	if not is_instance_valid(roll_animation_controller):
+		printerr("CRITICAL: RollAnimationController node not found in Game.tscn!")
+	else:
+		print("Game: RollAnimationController node found.")
+		# Connect to its signals
+		if roll_animation_controller.has_signal("logical_roll_requested"):
+			roll_animation_controller.logical_roll_requested.connect(Callable(self, "_on_rac_logical_roll_requested"))
+		else: printerr("ERROR: RollAnimationController missing 'logical_roll_requested' signal.")
+		
+		if roll_animation_controller.has_signal("fanfare_start_requested"):
+			roll_animation_controller.fanfare_start_requested.connect(Callable(self, "_on_rac_fanfare_start_requested"))
+		else: printerr("ERROR: RollAnimationController missing 'fanfare_start_requested' signal.")
 
-	reveal_on_button_timer = Timer.new(); reveal_on_button_timer.one_shot = true
-	reveal_on_button_timer.wait_time = REVEAL_DURATION
-	reveal_on_button_timer.timeout.connect(Callable(self, "_on_reveal_on_button_timer_timeout")); add_child(reveal_on_button_timer)
+		if roll_animation_controller.has_signal("move_to_history_requested"):
+			roll_animation_controller.move_to_history_requested.connect(Callable(self, "_on_rac_move_to_history_requested"))
+		else: printerr("ERROR: RollAnimationController missing 'move_to_history_requested' signal.")
+
+		if roll_animation_controller.has_signal("full_animation_sequence_complete"):
+			roll_animation_controller.full_animation_sequence_complete.connect(Callable(self, "_on_rac_full_animation_sequence_complete"))
+		else: printerr("ERROR: RollAnimationController missing 'full_animation_sequence_complete' signal.")
+
+		# Setup references for the controller
+		if roll_animation_controller.has_method("setup_references"):
+			roll_animation_controller.setup_references(roll_button, ui_canvas, hud_instance)
 	
 	auto_roll_delay_timer = Timer.new(); auto_roll_delay_timer.name = "AutoRollDelayTimer"
 	auto_roll_delay_timer.wait_time = 0.25; auto_roll_delay_timer.one_shot = true
@@ -155,14 +171,7 @@ func _ready():
 		game_over_instance.hide()
 
 	if is_instance_valid(roll_button): roll_button.pressed.connect(Callable(self, "_on_roll_button_pressed"))
-	if is_instance_valid(roll_animation_timer): 
-		var error_code = roll_animation_timer.timeout.connect(Callable(self, "_on_roll_animation_timer_timeout"))
-		if error_code == OK:
-			print("Game: roll_animation_timer.timeout connected successfully to _on_roll_animation_timer_timeout.")
-		else:
-			printerr("Game: FAILED to connect roll_animation_timer.timeout. Error: ", error_code)
-	else:
-		printerr("ERROR: RollAnimationTimer node not found in _ready (or path in @onready var is wrong).")
+	
 	
 # Connect to ProgressionManager signals
 	if ProgressionManager.has_signal("game_phase_changed"): ProgressionManager.game_phase_changed.connect(Callable(self, "_on_progression_game_phase_changed"))
@@ -190,10 +199,12 @@ func _process(delta):
 			if is_instance_valid(roll_button): roll_button.disabled = (player_current_rolls_this_round >= max_rolls_for_current_round)
 			_update_hud_static_elements()
 			_try_start_auto_roll()
-		GameRollState.ROLLING: if is_instance_valid(roll_button): roll_button.disabled = true; pass
-		GameRollState.RESULT_REVEAL: pass
-		GameRollState.FANFARE_ANIMATION: pass
-		GameRollState.GLYPH_TO_HISTORY: pass
+			pass
+		GameRollState.AWAITING_ANIMATION_COMPLETION:
+			# Game logic is paused, waiting for RollAnimationController to emit 'full_animation_sequence_complete'
+			if is_instance_valid(roll_button): roll_button.disabled = true # Ensure button stays disabled
+			pass
+
 		GameRollState.LOOT_SELECTION: pass
 		GameRollState.GAME_OVER:
 			if is_instance_valid(hud_instance): hud_instance.visible = false
@@ -268,28 +279,6 @@ func _update_hud_static_elements():
 	hud_instance.update_rolls_display(rolls_available, max_rolls_for_current_round)
 	hud_instance.update_score_target_display(ScoreManager.get_current_round_score(), target_score_for_current_round)
 	hud_instance.update_level_display(current_round_number_local)
-
-func _start_glyph_fanfare_animation():
-	if not is_instance_valid(last_rolled_glyph): _finalize_roll_logic_and_proceed(); return
-	if is_instance_valid(animating_glyph_node): animating_glyph_node.queue_free()
-	animating_glyph_node = TextureRect.new(); animating_glyph_node.texture = last_rolled_glyph.texture
-	animating_glyph_node.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; animating_glyph_node.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	animating_glyph_node.custom_minimum_size = ROLL_BUTTON_GLYPH_SIZE; animating_glyph_node.size = ROLL_BUTTON_GLYPH_SIZE
-	var on_button_glyph_display = roll_button.get_node_or_null("RolledGlyphOnButtonDisplay")
-	if is_instance_valid(on_button_glyph_display):
-		animating_glyph_node.global_position = on_button_glyph_display.global_position - (animating_glyph_node.size / 2.0) + (on_button_glyph_display.size / 2.0)
-		on_button_glyph_display.visible = false
-	else: animating_glyph_node.global_position = roll_button.global_position
-	if is_instance_valid(ui_canvas): ui_canvas.add_child(animating_glyph_node)
-	else: add_child(animating_glyph_node)
-	var screen_center = get_viewport_rect().size / 2.0
-	var tween_to_center = create_tween()
-	tween_to_center.tween_property(animating_glyph_node, "global_position", screen_center - (animating_glyph_node.size / 2.0), 0.5).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	var temp_history_for_synergy_check = roll_history.duplicate(true); temp_history_for_synergy_check.append(last_rolled_glyph)
-	var score_data = _calculate_score_and_synergies(temp_history_for_synergy_check)
-	if is_instance_valid(hud_instance) and hud_instance.has_method("play_score_fanfare"):
-		hud_instance.play_score_fanfare(score_data.points_from_roll, score_data.points_from_synergy, ScoreManager.get_current_round_score(), score_data.synergy_messages, current_success_tier)
-	else: call_deferred("_on_hud_fanfare_animation_finished")
 
 func _calculate_score_and_synergies(p_history_for_check: Array[GlyphData]) -> Dictionary:
 	var points_from_roll: int = 0
@@ -366,25 +355,15 @@ func _evaluate_synergies_and_boons(p_history_for_check: Array[GlyphData]) -> Dic
 			if found_all: active_boons[pid]=true;messages.append("BOON: %s! (%s)"%[pd.display_name,pd.boon_description]);_apply_boon_effect(pid)
 	return {"bonus_score": total_synergy_bonus, "messages": messages}
 
-func _on_hud_fanfare_animation_finished():
-	if current_game_roll_state == GameRollState.FANFARE_ANIMATION: current_game_roll_state = GameRollState.GLYPH_TO_HISTORY; _start_glyph_to_history_animation()
-
-func _start_glyph_to_history_animation():
-	if not is_instance_valid(animating_glyph_node) or not is_instance_valid(last_rolled_glyph):
-		if is_instance_valid(animating_glyph_node): animating_glyph_node.queue_free(); animating_glyph_node = null
-		_finalize_roll_logic_and_proceed(); return
-	var target_pos: Vector2
-	if is_instance_valid(hud_instance) and hud_instance.has_method("get_next_history_slot_global_position"): target_pos = hud_instance.get_next_history_slot_global_position()
-	else: target_pos = Vector2(100,100)
-	var tween = create_tween(); tween.finished.connect(_on_glyph_to_history_animation_finished); tween.set_parallel(true)
-	tween.tween_property(animating_glyph_node, "global_position", target_pos - (HISTORY_SLOT_GLYPH_SIZE/2.0), 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	tween.tween_property(animating_glyph_node, "custom_minimum_size", HISTORY_SLOT_GLYPH_SIZE, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	tween.tween_property(animating_glyph_node, "size", HISTORY_SLOT_GLYPH_SIZE, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-
-func _on_glyph_to_history_animation_finished():
-	if is_instance_valid(animating_glyph_node): animating_glyph_node.queue_free(); animating_glyph_node = null
-	if is_instance_valid(hud_instance) and hud_instance.has_method("add_glyph_to_visual_history"): hud_instance.add_glyph_to_visual_history(last_rolled_glyph)
-	_finalize_roll_logic_and_proceed()
+# --- HUD fanfare finished signal handler ---
+func _on_hud_fanfare_animation_finished(): # This is connected to HUD's signal
+	print("Game: HUD reported fanfare animation finished.")
+	if current_game_roll_state == GameRollState.AWAITING_ANIMATION_COMPLETION: # Check if we are waiting for this
+		if is_instance_valid(roll_animation_controller) and roll_animation_controller.has_method("hud_fanfare_has_completed"):
+			roll_animation_controller.hud_fanfare_has_completed() # Tell controller to proceed
+	else:
+		print("Game: HUD fanfare finished, but GameRollState is not AWAITING_ANIMATION_COMPLETION. State: ", GameRollState.keys()[current_game_roll_state])
+		
 
 func _finalize_roll_logic_and_proceed():
 	if is_instance_valid(last_rolled_glyph): roll_history.append(last_rolled_glyph)
@@ -476,44 +455,22 @@ func _on_auto_roll_delay_timer_timeout():
 		if auto_roll_enabled and current_game_roll_state==GameRollState.PLAYING and (max_rolls_for_current_round-player_current_rolls_this_round)>0:
 			_try_start_auto_roll()
 
+# --- Roll Button Pressed - Now delegates to RollAnimationController ---
 func _on_roll_button_pressed():
-	# Optional: Add a print here to confirm it's being called by the auto-roll timer
-	# print("Game: _on_roll_button_pressed CALLED by %s. State: %s, Rolls available: %d" % [
-	#    ("AutoRollTimer" if auto_roll_enabled and not roll_button.is_pressed() else "ManualClick"), # Crude way to check caller
-	#    GameRollState.keys()[current_game_roll_state], 
-	#    (max_rolls_for_current_round - player_current_rolls_this_round)
-	# ])
-
 	if current_game_roll_state == GameRollState.PLAYING and (max_rolls_for_current_round - player_current_rolls_this_round) > 0 :
-		print("Game: _on_roll_button_pressed: Conditions MET, proceeding with roll.")
-		current_game_roll_state = GameRollState.ROLLING
-		if is_instance_valid(roll_button): 
-			roll_button.disabled = true
+		print("Game: Roll button pressed. Telling RollAnimationController to start.")
+		current_game_roll_state = GameRollState.AWAITING_ANIMATION_COMPLETION # Game waits
+		if is_instance_valid(roll_button): roll_button.disabled = true
 		
-		if is_instance_valid(hud_instance) and hud_instance.has_method("start_roll_button_animation"):
-			hud_instance.start_roll_button_animation()
-			
-		var on_button_glyph_display = roll_button.get_node_or_null("RolledGlyphOnButtonDisplay")
-		if is_instance_valid(on_button_glyph_display): 
-			on_button_glyph_display.visible = false
-		
-		print("Game: Attempting to start roll_animation_timer.") # DEBUG
-		if is_instance_valid(roll_animation_timer):
-			roll_animation_timer.start()
-			print("Game: roll_animation_timer STARTED. Wait time: ", roll_animation_timer.wait_time) # DEBUG
+		if is_instance_valid(roll_animation_controller) and roll_animation_controller.has_method("start_full_roll_sequence"):
+			roll_animation_controller.start_full_roll_sequence()
 		else:
-			printerr("Game: roll_animation_timer IS NOT VALID in _on_roll_button_pressed! Cannot start.")
-			# If it's not valid, the game will stall here as _on_roll_animation_timer_timeout will never be called.
-			# We might need a fallback or to fix the timer setup.
-			current_game_roll_state = GameRollState.PLAYING # Fallback to a safe state
-			if is_instance_valid(roll_button): roll_button.disabled = false
-			return # Stop further execution in this broken path
+			printerr("Game: RollAnimationController not valid or missing start_full_roll_sequence method! Cannot start roll animation.")
+			# Fallback:
+			current_game_roll_state = GameRollState.PLAYING 
+			if is_instance_valid(roll_button): roll_button.disabled = (player_current_rolls_this_round >= max_rolls_for_current_round)
 	else:
-		print("Game: _on_roll_button_pressed: Conditions NOT MET. State: %s, Rolls Left: %d" % [
-			GameRollState.keys()[current_game_roll_state], 
-			(max_rolls_for_current_round - player_current_rolls_this_round)
-		])
-
+		print("Game: Cannot roll. State:%s, Rolls available:%d" % [GameRollState.keys()[current_game_roll_state], (max_rolls_for_current_round - player_current_rolls_this_round)])
 func _perform_roll(): # Selects the glyph
 	print("Game: _perform_roll() CALLED.") # DEBUG
 	if current_player_dice.is_empty():
@@ -531,58 +488,99 @@ func _perform_roll(): # Selects the glyph
 		# This is a serious data issue if it happens.
 	else:
 		print("Game: _perform_roll() - Rolled: ", last_rolled_glyph.display_name)
-
-func _on_reveal_on_button_timer_timeout(): # Called after REVEAL_DURATION
-	print("Game: _on_reveal_on_button_timer_timeout CALLED. Current GameRollState: ", GameRollState.keys()[current_game_roll_state]) # DEBUG
-	
-	if current_game_roll_state == GameRollState.RESULT_REVEAL:
-		current_game_roll_state = GameRollState.FANFARE_ANIMATION
-		print("Game: _on_reveal_on_button_timer_timeout - State changed to FANFARE_ANIMATION.")
-		_start_glyph_fanfare_animation() # This starts the glyph moving to center & HUD fanfare
-	else:
-		print("Game: _on_reveal_on_button_timer_timeout called, but not in RESULT_REVEAL state. Current state: ", GameRollState.keys()[current_game_roll_state])
-
-
-func _on_roll_animation_timer_timeout():
-	print("Game: _on_roll_animation_timer_timeout CALLED. Current GameRollState: ", GameRollState.keys()[current_game_roll_state]) # VERIFY THIS PRINTS
-	
-	if current_game_roll_state == GameRollState.ROLLING:
-		_perform_roll() # This sets last_rolled_glyph
 		
-		if not is_instance_valid(last_rolled_glyph):
-			printerr("Game: _on_roll_animation_timer_timeout - _perform_roll resulted in invalid glyph. Aborting roll sequence.")
-			current_game_roll_state = GameRollState.PLAYING # Reset to a safe state
-			if is_instance_valid(roll_button): 
-				# Re-enable roll button based on current roll count
-				roll_button.disabled = (player_current_rolls_this_round >= max_rolls_for_current_round)
-			return
-
-		# This was part of the original logic, Game.gd tells HUD about the result for its own display
-		if is_instance_valid(hud_instance) and hud_instance.has_method("stop_roll_button_animation_show_result"):
-			hud_instance.stop_roll_button_animation_show_result(last_rolled_glyph) 
-		
-		# This shows the glyph ON THE ACTUAL ROLL BUTTON
-		var on_button_glyph_display = roll_button.get_node_or_null("RolledGlyphOnButtonDisplay")
-		if is_instance_valid(on_button_glyph_display):
-			if is_instance_valid(last_rolled_glyph) and is_instance_valid(last_rolled_glyph.texture):
-				on_button_glyph_display.texture = last_rolled_glyph.texture
-				on_button_glyph_display.visible = true
-				print("Game: _on_roll_animation_timer_timeout - Displayed glyph on button: ", last_rolled_glyph.display_name)
-			else: 
-				on_button_glyph_display.visible = false
-				printerr("Game: _on_roll_animation_timer_timeout - Could not display glyph on button - glyph or texture invalid.")
-		else:
-			printerr("Game: _on_roll_animation_timer_timeout - RolledGlyphOnButtonDisplay node not found on roll_button.")
-
-		current_game_roll_state = GameRollState.RESULT_REVEAL
-		print("Game: _on_roll_animation_timer_timeout - State changed to RESULT_REVEAL. Starting reveal_on_button_timer.")
-		if is_instance_valid(reveal_on_button_timer):
-			reveal_on_button_timer.start()
-		else:
-			printerr("Game: _on_roll_animation_timer_timeout - reveal_on_button_timer is not valid!")
-			# Fallback if this timer is also broken
-			current_game_roll_state = GameRollState.PLAYING 
-			if is_instance_valid(roll_button): roll_button.disabled = (player_current_rolls_this_round >= max_rolls_for_current_round)
-
+# --- Callbacks for RollAnimationController Signals ---
+func _on_rac_logical_roll_requested():
+	print("Game: RollAnimationController requested logical roll.")
+	_perform_roll() # Game.gd still performs the logical roll
+	if is_instance_valid(roll_animation_controller) and roll_animation_controller.has_method("set_logical_roll_result"):
+		roll_animation_controller.set_logical_roll_result(last_rolled_glyph) # Send result back to controller
 	else:
-		print("Game: _on_roll_animation_timer_timeout called, but not in ROLLING state. Current state: ", GameRollState.keys()[current_game_roll_state])
+		printerr("Game: Cannot send logical roll result back to RollAnimationController.")
+
+func _on_rac_fanfare_start_requested(p_rolled_glyph: GlyphData, p_temp_anim_glyph_node: TextureRect):
+	# p_rolled_glyph and p_temp_anim_glyph_node are provided by controller, but Game.gd
+	# uses its own last_rolled_glyph and will create score_data based on that.
+	# The p_temp_anim_glyph_node is mostly for RAC's internal use if it were drawing it.
+	print("Game: RollAnimationController requested fanfare start.")
+	
+	# Ensure last_rolled_glyph is set (should be by _on_rac_logical_roll_requested)
+	if not is_instance_valid(last_rolled_glyph):
+		printerr("Game: last_rolled_glyph is not valid when fanfare requested!")
+		# Potentially tell controller to abort or skip fanfare
+		if is_instance_valid(roll_animation_controller) and roll_animation_controller.has_method("hud_fanfare_has_completed"): # Tell it to skip
+			roll_animation_controller.hud_fanfare_has_completed()
+		return
+
+	var temp_history_for_synergy_check = roll_history.duplicate(true)
+	temp_history_for_synergy_check.append(last_rolled_glyph) # Use Game.gd's last_rolled_glyph
+	
+	var score_data = _calculate_score_and_synergies(temp_history_for_synergy_check)
+
+	if is_instance_valid(hud_instance) and hud_instance.has_method("play_score_fanfare"):
+		# HUD will emit 'fanfare_animation_finished', which Game.gd catches
+		hud_instance.play_score_fanfare(
+			score_data.points_from_roll, 
+			score_data.points_from_synergy, 
+			ScoreManager.get_current_round_score(), 
+			score_data.synergy_messages, 
+			current_success_tier
+		)
+	else: # No HUD fanfare, so tell controller fanfare is "done" immediately
+		print("Game: HUD cannot play score fanfare. Telling RollAnimationController it's complete.")
+		if is_instance_valid(roll_animation_controller) and roll_animation_controller.has_method("hud_fanfare_has_completed"):
+			roll_animation_controller.hud_fanfare_has_completed()
+
+
+func _on_rac_move_to_history_requested(p_animating_glyph_node: TextureRect, p_final_glyph: GlyphData):
+	print("Game: RollAnimationController requested move to history.")
+	# p_animating_glyph_node is the node controller wants us to tween.
+	# p_final_glyph is the glyph that should end up in the history.
+	
+	if not is_instance_valid(p_animating_glyph_node) or not is_instance_valid(p_final_glyph):
+		printerr("Game: Invalid node or glyph data for move_to_history_requested.")
+		if is_instance_valid(roll_animation_controller) and roll_animation_controller.has_method("animation_move_to_history_finished"):
+			roll_animation_controller.animation_move_to_history_finished() # Tell it to clean up
+		return
+
+	var target_slot_center_pos: Vector2
+	if is_instance_valid(hud_instance) and hud_instance.has_method("get_next_history_slot_global_position"):
+		target_slot_center_pos = hud_instance.get_next_history_slot_global_position()
+	else: 
+		printerr("Game: HUD cannot provide history slot position for move_to_history.")
+		target_slot_center_pos = Vector2(100, 100) # Fallback
+
+	var tween_to_history = create_tween()
+	tween_to_history.finished.connect(Callable(self, "_on_internal_move_to_history_tween_finished")) # Connect to an internal handler
+
+	tween_to_history.set_parallel(true) 
+	var target_visual_pos = target_slot_center_pos - (HISTORY_SLOT_GLYPH_SIZE / 2.0)
+	tween_to_history.tween_property(p_animating_glyph_node, "global_position", target_visual_pos, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween_to_history.tween_property(p_animating_glyph_node, "custom_minimum_size", HISTORY_SLOT_GLYPH_SIZE, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween_to_history.tween_property(p_animating_glyph_node, "size", HISTORY_SLOT_GLYPH_SIZE, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+
+func _on_internal_move_to_history_tween_finished():
+	print("Game: Internal tween for move_to_history finished.")
+	if is_instance_valid(roll_animation_controller) and roll_animation_controller.has_method("animation_move_to_history_finished"):
+		roll_animation_controller.animation_move_to_history_finished()
+	# The controller will then emit full_animation_sequence_complete
+
+
+func _on_rac_full_animation_sequence_complete(final_glyph_data: GlyphData):
+	print("Game: RollAnimationController reported full_animation_sequence_complete. Final glyph: ", final_glyph_data.display_name if final_glyph_data else "N/A")
+	
+	if not is_instance_valid(final_glyph_data):
+		printerr("Game: Animation sequence completed with invalid final glyph data. Problems may occur.")
+		# Decide how to handle this error - e.g., force round end, or try to recover
+	
+	# last_rolled_glyph should have been set by _on_rac_logical_roll_requested
+	# and should match final_glyph_data. For safety, we can use final_glyph_data here.
+	# Though _finalize_roll_logic_and_proceed uses Game.gd's 'last_rolled_glyph'.
+	# Ensure consistency:
+	if is_instance_valid(final_glyph_data):
+		last_rolled_glyph = final_glyph_data # Ensure Game.gd's copy is the one from the anim sequence
+	
+	if is_instance_valid(hud_instance) and hud_instance.has_method("add_glyph_to_visual_history"):
+		hud_instance.add_glyph_to_visual_history(last_rolled_glyph) # Update HUD's visual track
+	
+	_finalize_roll_logic_and_proceed() # This updates logical history, checks for round end
