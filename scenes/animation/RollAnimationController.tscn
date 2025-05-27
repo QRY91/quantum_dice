@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://byqllwnq7yhpu"]
+
+[node name="RollAnimationController" type="Node"]
+
+[node name="DiceRollEffectTimer" type="Timer" parent="."]
+
+[node name="RevealOnButtonTimer" type="Timer" parent="."]
