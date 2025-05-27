@@ -64,15 +64,9 @@ var active_boons: Dictionary = {} # Game.gd's list of *which* boons are active (
 @onready var roll_button: TextureButton = $UICanvas/MainGameUI/AnimatedRollButton
 @onready var ui_canvas: CanvasLayer = $UICanvas
 
-# --- Scene Preloads & Instances (Could move to a SceneTransitionManager) ---
-var main_menu_scene: PackedScene = preload("res://scenes/ui/MainMenu.tscn")
-@onready var main_menu_instance: Control
-var loot_screen_scene: PackedScene = preload("res://scenes/ui/LootScreen.tscn")
-@onready var loot_screen_instance: Control
+# HUD instance is still needed directly by Game.gd for gameplay UI updates
 var hud_scene: PackedScene = preload("res://scenes/ui/HUD.tscn")
-@onready var hud_instance: Control
-var game_over_screen_scene: PackedScene = preload("res://scenes/ui/GameOverScreen.tscn")
-@onready var game_over_instance: Control
+@onready var hud_instance: Control 
 
 @onready var roll_animation_timer: Timer = $RollAnimationTimer
 
@@ -121,6 +115,13 @@ func _ready():
 	auto_roll_delay_timer.wait_time = 0.25; auto_roll_delay_timer.one_shot = true
 	auto_roll_delay_timer.timeout.connect(Callable(self, "_on_auto_roll_delay_timer_timeout")); add_child(auto_roll_delay_timer)
 
+# Set UI Parent for SceneUIManager
+	if is_instance_valid(ui_canvas):
+		SceneUIManager.set_ui_parent_node(ui_canvas)
+	else:
+		printerr("Game: CRITICAL - ui_canvas node not found, cannot set parent for SceneUIManager!")
+		SceneUIManager.set_ui_parent_node(self) # Fallback, less ideal
+
 	# HUD Setup
 	if hud_scene:
 		hud_instance = hud_scene.instantiate()
@@ -142,31 +143,17 @@ func _ready():
 			if auto_roll_button.has_method("get_current_state"): auto_roll_enabled = auto_roll_button.get_current_state()
 	else: printerr("ERROR: HUD.tscn not preloaded!")
 	
+		# Connect to SceneUIManager signals
+	SceneUIManager.main_menu_start_game_pressed.connect(Callable(self, "_on_main_menu_start_game"))
+	SceneUIManager.loot_screen_loot_selected.connect(Callable(self, "_on_loot_selected"))
+	SceneUIManager.loot_screen_skipped.connect(Callable(self, "_on_loot_screen_closed"))
+	SceneUIManager.game_over_retry_pressed.connect(Callable(self, "_on_game_over_retry_pressed"))
+	SceneUIManager.game_over_main_menu_pressed.connect(Callable(self, "_on_game_over_main_menu_pressed"))
+	
 	var ui_canvas_node = get_node_or_null("UICanvas") # Get UICanvas once
 	if not is_instance_valid(ui_canvas_node): printerr("CRITICAL: UICanvas node not found in Game scene!")
 
-	if main_menu_scene: 
-		main_menu_instance = main_menu_scene.instantiate()
-		if is_instance_valid(ui_canvas_node): ui_canvas_node.add_child(main_menu_instance)
-		else: add_child(main_menu_instance) # Fallback
-		if main_menu_instance.has_signal("start_game_pressed"): main_menu_instance.start_game_pressed.connect(Callable(self, "_on_main_menu_start_game"))
-	
-	if loot_screen_scene: 
-		loot_screen_instance = loot_screen_scene.instantiate()
-		if is_instance_valid(ui_canvas_node): ui_canvas_node.add_child(loot_screen_instance)
-		else: add_child(loot_screen_instance)
-		if loot_screen_instance.has_signal("loot_selected"): loot_screen_instance.loot_selected.connect(Callable(self, "_on_loot_selected"))
-		if loot_screen_instance.has_signal("skip_loot_pressed"): loot_screen_instance.skip_loot_pressed.connect(Callable(self, "_on_loot_screen_closed"))
-		else: print("Game: LootScreen instance does not have 'skip_loot_pressed' signal.")
-		loot_screen_instance.hide()
 
-	if game_over_screen_scene: 
-		game_over_instance = game_over_screen_scene.instantiate()
-		if is_instance_valid(ui_canvas_node): ui_canvas_node.add_child(game_over_instance)
-		else: add_child(game_over_instance)
-		if game_over_instance.has_signal("retry_pressed"): game_over_instance.retry_pressed.connect(Callable(self, "_on_game_over_retry_pressed"))
-		if game_over_instance.has_signal("main_menu_pressed"): game_over_instance.main_menu_pressed.connect(Callable(self, "_on_game_over_main_menu_pressed"))
-		game_over_instance.hide()
 
 	if is_instance_valid(roll_button): roll_button.pressed.connect(Callable(self, "_on_roll_button_pressed"))
 	
@@ -177,7 +164,11 @@ func _ready():
 	if ProgressionManager.has_signal("boss_indicator_update"): ProgressionManager.boss_indicator_update.connect(Callable(self, "_on_progression_boss_indicator_update"))
 
 	current_game_roll_state = GameRollState.MENU
-	pass
+	# Directly call SceneUIManager if it's an Autoload.
+	# It's guaranteed to exist if the Autoload setup was successful.
+	SceneUIManager.show_main_menu() # Initial state
+	print("Game: Requested SceneUIManager to show main menu.") # Add for confirmation
+
 
 func _process(delta):
 	match current_game_roll_state:
@@ -185,7 +176,6 @@ func _process(delta):
 			var main_game_ui_node = get_node_or_null("UICanvas/MainGameUI")
 			if is_instance_valid(main_game_ui_node): main_game_ui_node.visible = false
 			if is_instance_valid(hud_instance): hud_instance.visible = false
-			if is_instance_valid(main_menu_instance) and not main_menu_instance.visible: main_menu_instance.show()
 		GameRollState.INITIALIZING_GAME:
 			_initialize_new_game_run_setup() 
 		GameRollState.INITIALIZING_ROUND:
@@ -206,10 +196,19 @@ func _process(delta):
 		GameRollState.LOOT_SELECTION: pass
 		GameRollState.GAME_OVER:
 			if is_instance_valid(hud_instance): hud_instance.visible = false
-			# ScoreManager handles high score saving internally now.
-			if is_instance_valid(game_over_instance) and not game_over_instance.visible:
-				game_over_instance.show_screen(ScoreManager.get_total_accumulated_score(), current_round_number_local)
-			pass
+			# SceneUIManager will show the game over screen
+			# ScoreManager handles high score saving.
+			SceneUIManager.show_game_over_screen(ScoreManager.get_total_accumulated_score(), current_round_number_local)
+			current_game_roll_state = GameRollState.MENU # Or a specific GAME_OVER_DISPLAYING state
+			# To prevent it from immediately trying to show main menu if _process loops fast:
+			# Change to a new state like GameRollState.GAME_OVER_SCREEN_ACTIVE
+			# And have game_over_instance signals transition out of that.
+			# For now, this might flicker if game over screen doesn't block _process.
+			# Let's assume GameOverScreen signals will drive next state change.
+			# To prevent re-showing, we can make show_game_over_screen idempotent or Game.gd check.
+			# For simplicity, let Game.gd just set a flag or rely on GameOverScreen signals.
+			# The call to show_game_over_screen is now in _end_round if loss.
+			pass # Wait for game over screen signals
 	pass
 # --- Progression Backbone Integration ---
 func _initialize_new_game_run_setup():
@@ -267,7 +266,8 @@ func _end_round():
 		_prepare_and_show_loot_screen()
 	else: # LOSS
 		PlayerNotificationSystem.display_message("Round %d Failed." % current_round_number_local)
-		current_game_roll_state = GameRollState.GAME_OVER
+		SceneUIManager.show_game_over_screen(ScoreManager.get_total_accumulated_score(), current_round_number_local)
+		current_game_roll_state = GameRollState.GAME_OVER # Stay in GAME_OVER, wait for its signals
 
 # --- Signal Handlers for ProgressionManager ---
 func _on_progression_game_phase_changed(new_phase_enum_value: int):
@@ -391,41 +391,53 @@ func _finalize_roll_logic_and_proceed():
 		_try_start_auto_roll()
 
 
-func _on_main_menu_start_game():
-	if is_instance_valid(main_menu_instance): main_menu_instance.hide()
+# --- UI Panel Callbacks (now from SceneUIManager signals) ---
+func _on_main_menu_start_game(): # Was connected to main_menu_instance directly
+	# SceneUIManager already hides main_menu if its internal handler does so.
+	# Game.gd focuses on game state change.
+	print("Game: Start game triggered by SceneUIManager.")
 	current_game_roll_state = GameRollState.INITIALIZING_GAME
 
-func _prepare_and_show_loot_screen():
-	if not is_instance_valid(loot_screen_instance): call_deferred("_start_new_round_setup"); return
-	var loot_options = GlyphDB.get_random_loot_options(3)
-	if not loot_options.is_empty(): loot_screen_instance.display_loot_options(loot_options); play_sound(sfx_loot_appears)
-	else: PlayerNotificationSystem.display_message("No loot options."); call_deferred("_start_new_round_setup")
+func _prepare_and_show_loot_screen(): # Called after winning a round
+	# if not is_instance_valid(loot_screen_instance): # SceneUIManager handles instance
+	var loot_options = GlyphDB.get_random_loot_options(3) # Still get options here
+	if not loot_options.is_empty():
+		SceneUIManager.show_loot_screen(loot_options)
+		play_sound(sfx_loot_appears)
+	else:
+		PlayerNotificationSystem.display_message("No loot options available this time.")
+		call_deferred("_start_new_round_setup") # Skip to next round
 
-func _on_loot_selected(chosen_glyph: GlyphData):
-	if is_instance_valid(loot_screen_instance): loot_screen_instance.hide()
-	PlayerDiceManager.add_glyph_to_dice(chosen_glyph) # Call manager
+
+func _on_loot_selected(chosen_glyph: GlyphData): # Was connected to loot_screen_instance
+	# SceneUIManager already hides loot_screen.
+	print("Game: Loot selected (via SceneUIManager): ", chosen_glyph.display_name)
+	PlayerDiceManager.add_glyph_to_dice(chosen_glyph)
 	ScoreManager.add_to_total_score(50)
 	play_sound(sfx_glyph_added)
 	call_deferred("_start_new_round_setup")
-func _on_loot_screen_closed():
-	if is_instance_valid(loot_screen_instance): loot_screen_instance.hide()
-	PlayerNotificationSystem.display_message("Loot skipped."); call_deferred("_start_new_round_setup")
 
+func _on_loot_screen_closed(): # Was connected to loot_screen_instance
+	# SceneUIManager already hides loot_screen.
+	print("Game: Loot screen closed/skipped (via SceneUIManager).")
+	PlayerNotificationSystem.display_message("Loot skipped.")
+	call_deferred("_start_new_round_setup")
+
+func _on_game_over_retry_pressed(): # Was connected to game_over_instance
+	# SceneUIManager already hides game_over_screen.
+	print("Game: Retry pressed (via SceneUIManager).")
+	current_game_roll_state = GameRollState.INITIALIZING_GAME
+
+func _on_game_over_main_menu_pressed(): # Was connected to game_over_instance
+	# SceneUIManager already hides game_over_screen.
+	print("Game: Main Menu from GameOver pressed (via SceneUIManager).")
+	current_game_roll_state = GameRollState.MENU
+	SceneUIManager.show_main_menu() # Explicitly show main menu
+	
 func _on_hud_inventory_toggled(is_inventory_visible: bool): # HUD needs dice info
 	if is_inventory_visible and is_instance_valid(hud_instance):
 		if hud_instance.has_method("update_dice_inventory_display"):
 			hud_instance.update_dice_inventory_display(PlayerDiceManager.get_current_dice())
-
-func _on_game_over_retry_pressed():
-	if is_instance_valid(game_over_instance): game_over_instance.hide()
-	current_game_roll_state = GameRollState.INITIALIZING_GAME
-func _on_game_over_main_menu_pressed():
-	if is_instance_valid(game_over_instance): game_over_instance.hide()
-	current_game_roll_state = GameRollState.MENU
-
-# REMOVED _load_high_score and _save_high_score
-
-
 
 func play_sound(sound_resource: AudioStream, volume: int = 0):
 	if sfx_player and sound_resource: sfx_player.stream=sound_resource;sfx_player.volume_db=volume;sfx_player.play()
