@@ -11,3 +11,5 @@ type = "dice"
 value = 1
 texture = ExtResource("2_4m2rg")
 suit = ""
+is_superposition = false
+superposition_outcomes = Array[ExtResource("1_1rjvd")]([])

@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="GlyphData" load_steps=25 format=3 uid="uid://rrsdb1ajv4ej"]
+
+[ext_resource type="Script" path="res://scripts/resources/GlyphData.gd" id="1_dnbci"]
+[ext_resource type="Resource" uid="uid://de8fpq7qaxkqv" path="res://resources/glyphs/dice_1.tres" id="2_tbi0j"]
+[ext_resource type="Resource" uid="uid://b5yyuw7qc2lu3" path="res://resources/glyphs/dice_2.tres" id="3_73g4p"]
+[ext_resource type="Resource" uid="uid://bwjj0aynlt2mg" path="res://resources/glyphs/dice_3.tres" id="4_8yqcd"]
+[ext_resource type="Resource" uid="uid://b82vurmp0aanu" path="res://resources/glyphs/dice_4.tres" id="5_bix8i"]
+[ext_resource type="Resource" uid="uid://c1p7iedussjqu" path="res://resources/glyphs/dice_5.tres" id="6_rlad8"]
+[ext_resource type="Resource" uid="uid://dptvxjivi2hww" path="res://resources/glyphs/dice_6.tres" id="7_g6jjd"]
+[ext_resource type="Resource" uid="uid://crhgxdk2cnyg3" path="res://resources/glyphs/card_ace_clubs.tres" id="8_knmyw"]
+[ext_resource type="Resource" uid="uid://bprmqfrr6s4ow" path="res://resources/glyphs/card_ace_diamonds.tres" id="9_mueo7"]
+[ext_resource type="Resource" uid="uid://bu2thwe13b6t3" path="res://resources/glyphs/card_ace_hearts.tres" id="10_0uhq0"]
+[ext_resource type="Resource" uid="uid://py5n4h801v8o" path="res://resources/glyphs/card_ace_spades.tres" id="11_ljmoa"]
+[ext_resource type="Resource" uid="uid://dvb3unr3638o5" path="res://resources/glyphs/card_jack_clubs.tres" id="12_0judb"]
+[ext_resource type="Resource" uid="uid://belgtkie2x4ku" path="res://resources/glyphs/card_jack_diamonds.tres" id="13_rydce"]
+[ext_resource type="Resource" uid="uid://buh6bmy8b7mtk" path="res://resources/glyphs/card_jack_hearts.tres" id="14_bc5l2"]
+[ext_resource type="Resource" uid="uid://hbsjfy41140t" path="res://resources/glyphs/card_jack_spades.tres" id="15_y7cdf"]
+[ext_resource type="Resource" uid="uid://7u073yeanyf3" path="res://resources/glyphs/card_king_clubs.tres" id="16_5o1kf"]
+[ext_resource type="Resource" uid="uid://dlm50lfnajfrh" path="res://resources/glyphs/card_king_diamonds.tres" id="17_ctuio"]
+[ext_resource type="Resource" uid="uid://b75podf85nduj" path="res://resources/glyphs/card_king_hearts.tres" id="18_xoivf"]
+[ext_resource type="Resource" uid="uid://d0mreqogtrocl" path="res://resources/glyphs/card_king_spades.tres" id="19_y6hbf"]
+[ext_resource type="Resource" uid="uid://cqe0ruhfpfukj" path="res://resources/glyphs/card_queen_clubs.tres" id="20_02w8m"]
+[ext_resource type="Resource" uid="uid://dtmv2qu7nv8b3" path="res://resources/glyphs/card_queen_diamonds.tres" id="21_es8ey"]
+[ext_resource type="Resource" uid="uid://brbtwfv4ob6bq" path="res://resources/glyphs/card_queen_hearts.tres" id="22_dtmrj"]
+[ext_resource type="Resource" uid="uid://d3e5gbfpsska7" path="res://resources/glyphs/card_queen_spades.tres" id="23_7dth6"]
+[ext_resource type="Texture2D" uid="uid://c1yht5d2ptnw3" path="res://assets/sprites/superposition.png" id="24_jylj0"]
+
+[resource]
+script = ExtResource("1_dnbci")
+id = "superposition_dice_or_card"
+display_name = "Superposition: Dice or Card?"
+type = "superposition"
+value = 0
+texture = ExtResource("24_jylj0")
+suit = ""
+is_superposition = true
+superposition_outcomes = Array[ExtResource("1_dnbci")]([ExtResource("2_tbi0j"), ExtResource("3_73g4p"), ExtResource("4_8yqcd"), ExtResource("5_bix8i"), ExtResource("6_rlad8"), ExtResource("7_g6jjd"), ExtResource("8_knmyw"), ExtResource("9_mueo7"), ExtResource("10_0uhq0"), ExtResource("11_ljmoa"), ExtResource("12_0judb"), ExtResource("13_rydce"), ExtResource("14_bc5l2"), ExtResource("15_y7cdf"), ExtResource("16_5o1kf"), ExtResource("17_ctuio"), ExtResource("18_xoivf"), ExtResource("19_y6hbf"), ExtResource("20_02w8m"), ExtResource("21_es8ey"), ExtResource("22_dtmrj"), ExtResource("23_7dth6")])

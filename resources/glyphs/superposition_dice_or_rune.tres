@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="GlyphData" load_steps=13 format=3 uid="uid://u244o5a2pxga"]
+
+[ext_resource type="Script" path="res://scripts/resources/GlyphData.gd" id="1_u8n1p"]
+[ext_resource type="Resource" uid="uid://de8fpq7qaxkqv" path="res://resources/glyphs/dice_1.tres" id="2_nadqr"]
+[ext_resource type="Resource" uid="uid://b5yyuw7qc2lu3" path="res://resources/glyphs/dice_2.tres" id="3_6jrtw"]
+[ext_resource type="Resource" uid="uid://bwjj0aynlt2mg" path="res://resources/glyphs/dice_3.tres" id="4_kuetk"]
+[ext_resource type="Resource" uid="uid://b82vurmp0aanu" path="res://resources/glyphs/dice_4.tres" id="5_dgm70"]
+[ext_resource type="Resource" uid="uid://c1p7iedussjqu" path="res://resources/glyphs/dice_5.tres" id="6_or7nr"]
+[ext_resource type="Resource" uid="uid://dptvxjivi2hww" path="res://resources/glyphs/dice_6.tres" id="7_o186q"]
+[ext_resource type="Resource" uid="uid://b6gt87fs6cr3s" path="res://resources/glyphs/rune_ansuz.tres" id="8_3l2ox"]
+[ext_resource type="Resource" uid="uid://cdps81ho18nil" path="res://resources/glyphs/rune_fehu.tres" id="9_2xxku"]
+[ext_resource type="Resource" uid="uid://c0ukho0ob3tie" path="res://resources/glyphs/rune_laguz.tres" id="10_0fjox"]
+[ext_resource type="Resource" uid="uid://ke1bpkxt8v1e" path="res://resources/glyphs/rune_sowilo.tres" id="11_vqvr8"]
+[ext_resource type="Texture2D" uid="uid://c1yht5d2ptnw3" path="res://assets/sprites/superposition.png" id="12_wmble"]
+
+[resource]
+script = ExtResource("1_u8n1p")
+id = "superposition_dice_or_rune"
+display_name = "Superposition: Dice or Rune?"
+type = "superposition"
+value = 0
+texture = ExtResource("12_wmble")
+suit = ""
+is_superposition = true
+superposition_outcomes = Array[ExtResource("1_u8n1p")]([ExtResource("2_nadqr"), ExtResource("3_6jrtw"), ExtResource("4_kuetk"), ExtResource("5_dgm70"), ExtResource("6_or7nr"), ExtResource("7_o186q"), ExtResource("8_3l2ox"), ExtResource("9_2xxku"), ExtResource("10_0fjox"), ExtResource("11_vqvr8")])

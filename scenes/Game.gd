@@ -30,9 +30,10 @@ var current_success_tier: SuccessTier = SuccessTier.NONE
 
 var enable_debug_rolls: bool = false
 
-# --- Player's DICE & Roll History ---
-var roll_history: Array[GlyphData] = []
-var last_rolled_glyph: GlyphData = null
+# Player's DICE & Roll History
+var roll_history: Array[GlyphData] = [] # Stores the RESOLVED glyphs
+var initial_rolled_glyph: GlyphData = null # The glyph as it comes off the dice (could be superposition)
+var last_resolved_glyph: GlyphData = null # The final glyph after any superposition collapse
 
 # --- Round Parameters (Set by ProgressionManager) ---
 var current_round_number_local: int = 0
@@ -85,17 +86,30 @@ func _ready():
 		printerr("CRITICAL: RollAnimationController node not found in Game.tscn!")
 	else:
 		print("Game: RollAnimationController node found.")
+		# Connect to its signals
 		if roll_animation_controller.has_signal("logical_roll_requested"):
 			roll_animation_controller.logical_roll_requested.connect(_on_rac_logical_roll_requested)
+		else: 
+			printerr("ERROR: RollAnimationController missing 'logical_roll_requested' signal.")
+		
 		if roll_animation_controller.has_signal("fanfare_start_requested"):
 			roll_animation_controller.fanfare_start_requested.connect(_on_rac_fanfare_start_requested)
+		else: 
+			printerr("ERROR: RollAnimationController missing 'fanfare_start_requested' signal.")
+
 		if roll_animation_controller.has_signal("move_to_history_requested"):
 			roll_animation_controller.move_to_history_requested.connect(_on_rac_move_to_history_requested)
+		else: 
+			printerr("ERROR: RollAnimationController missing 'move_to_history_requested' signal.")
+
 		if roll_animation_controller.has_signal("full_animation_sequence_complete"):
 			roll_animation_controller.full_animation_sequence_complete.connect(_on_rac_full_animation_sequence_complete)
+		else: 
+			printerr("ERROR: RollAnimationController missing 'full_animation_sequence_complete' signal.")
+
+		# Setup references for the controller (this might be called again later once hud_instance is ready, which is fine)
 		if roll_animation_controller.has_method("setup_references"):
-			roll_animation_controller.setup_references(roll_button, ui_canvas, hud_instance) # hud_instance might not be ready here
-	
+			roll_animation_controller.setup_references(roll_button, ui_canvas, hud_instance) 
 	auto_roll_delay_timer = Timer.new(); auto_roll_delay_timer.name = "AutoRollDelayTimer"
 	auto_roll_delay_timer.wait_time = 0.25; auto_roll_delay_timer.one_shot = true
 	auto_roll_delay_timer.timeout.connect(_on_auto_roll_delay_timer_timeout); add_child(auto_roll_delay_timer)
@@ -239,7 +253,7 @@ func _start_new_round_setup():
 
 	ScoreManager.reset_for_new_round()
 	player_current_rolls_this_round = 0
-	roll_history.clear(); synergies_fired_this_round.clear(); last_rolled_glyph = null
+	roll_history.clear(); synergies_fired_this_round.clear();
 	print("Game: Round %d setup. Target:%d, MaxRolls:%d, Phase:%s" % [current_round_number_local, target_score_for_current_round, max_rolls_for_current_round, ProgressionManager.GamePhase.keys()[current_game_phase_local]])
 	if is_instance_valid(hud_instance): 
 		if hud_instance.has_method("reset_round_visuals"): hud_instance.reset_round_visuals()
@@ -286,39 +300,52 @@ func _update_hud_static_elements():
 
 func _perform_roll():
 	print("Game: _perform_roll() CALLED.")
-	last_rolled_glyph = PlayerDiceManager.get_random_glyph_from_dice()
-	if not is_instance_valid(last_rolled_glyph):
+	# This now gets the glyph as it is on the dice, which might be a superposition type
+	initial_rolled_glyph = PlayerDiceManager.get_random_glyph_from_dice()
+	if not is_instance_valid(initial_rolled_glyph):
 		printerr("CRITICAL ERROR in _perform_roll: PlayerDiceManager returned invalid glyph!")
+		# Game.gd needs to handle this, perhaps by ending the roll or erroring out.
+		# For now, RAC will also catch this if initial_rolled_glyph is null.
 	else:
-		print("Game: _perform_roll() - Rolled: ", last_rolled_glyph.display_name)
+		print("Game: _perform_roll() - Initial roll: ", initial_rolled_glyph.display_name)
 
-func _calculate_score_and_synergies(p_history_for_check: Array[GlyphData]) -> Dictionary:
+func _calculate_score_and_synergies(resolved_glyph_for_scoring: GlyphData, current_roll_history: Array[GlyphData]) -> Dictionary:
 	var points_from_roll: int = 0
 	var points_from_synergy: int = 0
 	var synergy_messages: Array[String] = []
 	current_success_tier = SuccessTier.NONE
 
-	if not is_instance_valid(last_rolled_glyph):
+	if not is_instance_valid(resolved_glyph_for_scoring): # Use the passed parameter
+		printerr("Game: _calculate_score_and_synergies called with invalid resolved_glyph_for_scoring.")
 		return {"points_from_roll":0, "points_from_synergy":0, "synergy_messages":[]}
 	
-	points_from_roll = last_rolled_glyph.value
-	if last_rolled_glyph.type == "dice":
+	# Score based on the RESOLVED glyph
+	points_from_roll = resolved_glyph_for_scoring.value 
+	if resolved_glyph_for_scoring.type == "dice": # Check type of resolved glyph
 		points_from_roll += extra_points_per_dice_glyph_boon
 	
-	var current_logical_slot_index = p_history_for_check.size() - 1
-	if ProgressionManager.is_cornerstone_effect_active(2) and current_logical_slot_index == 2: # Slot 3 is index 2
+	# Cornerstone bonus check based on the logical slot index (size of history *before* adding current resolved glyph)
+	var current_logical_slot_index = current_roll_history.size() # Use passed current_roll_history
+	if ProgressionManager.is_cornerstone_effect_active(2) and current_logical_slot_index == 2:
 		points_from_roll += CORNERSTONE_SLOT_3_BONUS 
 		PlayerNotificationSystem.display_message("Cornerstone Slot 3 Bonus: +%d Score!" % CORNERSTONE_SLOT_3_BONUS)
 
 	ScoreManager.add_to_round_score(points_from_roll)
-	var eval_result = _evaluate_synergies_and_boons(p_history_for_check)
+
+	# Synergies are checked with a temporary history that includes the current resolved glyph
+	var temp_history_with_current_resolved_glyph = current_roll_history.duplicate(true) # Use passed current_roll_history
+	temp_history_with_current_resolved_glyph.append(resolved_glyph_for_scoring) # Append the current resolved glyph
+	
+	var eval_result = _evaluate_synergies_and_boons(temp_history_with_current_resolved_glyph) # Pass history + current resolved
 	points_from_synergy = eval_result.bonus_score
 	synergy_messages = eval_result.messages
 	
 	if points_from_synergy > 0: 
 		ScoreManager.add_to_round_score(points_from_synergy)
+	
 	ScoreManager.add_to_total_score(points_from_roll + points_from_synergy)
-	player_current_rolls_this_round += 1
+	
+	print("Game: Score calculated for resolved glyph '%s'. Roll pts: %d, Synergy pts: %d" % [resolved_glyph_for_scoring.display_name, points_from_roll, points_from_synergy])
 	return {"points_from_roll":points_from_roll, "points_from_synergy":points_from_synergy, "synergy_messages":synergy_messages}
 
 func _evaluate_synergies_and_boons(p_history_for_check: Array[GlyphData]) -> Dictionary:
@@ -350,10 +377,25 @@ func _on_hud_fanfare_animation_finished():
 		print("Game: HUD fanfare finished, but GameRollState is not AWAITING_ANIMATION_COMPLETION. State: ", GameRollState.keys()[current_game_roll_state])
 
 func _finalize_roll_logic_and_proceed():
-	if is_instance_valid(last_rolled_glyph): roll_history.append(last_rolled_glyph)
+	# This function is called AFTER full animation sequence is complete,
+	# and last_resolved_glyph should be set by then.
+	if not is_instance_valid(last_resolved_glyph):
+		printerr("Game: _finalize_roll_logic_and_proceed called but last_resolved_glyph is invalid!")
+		# Potentially end round or handle error, for now, try to continue if possible
+		# but this indicates a flaw in the animation callback sequence.
+	else:
+		roll_history.append(last_resolved_glyph) # Add the RESOLVED glyph to history
+		print("Game: Resolved glyph '%s' added to roll_history." % last_resolved_glyph.display_name)
+
+	player_current_rolls_this_round += 1 # Increment rolls here, after all processing for the roll is done.
+	
 	var sm_round_score = ScoreManager.get_current_round_score()
 	print("Game: Roll finalized. Rolls used: %d/%d. Round Score: %d" % [player_current_rolls_this_round, max_rolls_for_current_round, sm_round_score])
-	last_rolled_glyph = null; _update_hud_static_elements()
+	
+	initial_rolled_glyph = null # Clear initial for next roll
+	last_resolved_glyph = null  # Clear resolved for next roll
+	_update_hud_static_elements()
+	
 	if player_current_rolls_this_round >= max_rolls_for_current_round or sm_round_score >= target_score_for_current_round:
 		_end_round()
 	else:
@@ -374,7 +416,6 @@ func _prepare_and_show_loot_screen():
 		PlayerNotificationSystem.display_message("No loot options available this time.")
 		call_deferred("_start_new_round_setup")
 
-# NEW: Handler for inventory request from LootScreen (via SceneUIManager)
 func _on_loot_screen_inventory_requested():
 	print("Game: Loot screen requested inventory to be shown.")
 	if is_instance_valid(hud_instance):
@@ -458,21 +499,31 @@ func _on_roll_button_pressed():
 			current_game_roll_state = GameRollState.PLAYING 
 			if is_instance_valid(roll_button): roll_button.disabled = (player_current_rolls_this_round >= max_rolls_for_current_round)
 
+# --- Callbacks for RollAnimationController Signals ---
 func _on_rac_logical_roll_requested():
-	_perform_roll()
+	print("Game: RollAnimationController requested logical roll.")
+	_perform_roll() # Sets Game.initial_rolled_glyph
+	
+	# Send the initial (possibly superposition) glyph to the RAC
 	if is_instance_valid(roll_animation_controller) and roll_animation_controller.has_method("set_logical_roll_result"):
-		roll_animation_controller.set_logical_roll_result(last_rolled_glyph)
+		roll_animation_controller.set_logical_roll_result(initial_rolled_glyph)
+	else:
+		printerr("Game: Cannot send logical roll result back to RollAnimationController.")
 
-func _on_rac_fanfare_start_requested(p_rolled_glyph: GlyphData, p_temp_anim_glyph_node: TextureRect):
-	if not is_instance_valid(last_rolled_glyph):
-		printerr("Game: last_rolled_glyph is not valid when fanfare requested!")
+func _on_rac_fanfare_start_requested(p_resolved_glyph: GlyphData, _p_temp_anim_glyph_node: TextureRect):
+	# RAC now sends the RESOLVED glyph.
+	print("Game: RollAnimationController requested fanfare start for resolved_glyph: '%s'." % p_resolved_glyph.display_name if is_instance_valid(p_resolved_glyph) else "Invalid Glyph")
+	
+	if not is_instance_valid(p_resolved_glyph):
+		printerr("Game: Fanfare requested with invalid resolved_glyph from RAC!")
 		if is_instance_valid(roll_animation_controller) and roll_animation_controller.has_method("hud_fanfare_has_completed"):
 			roll_animation_controller.hud_fanfare_has_completed()
 		return
 
-	var temp_history_for_synergy_check = roll_history.duplicate(true)
-	temp_history_for_synergy_check.append(last_rolled_glyph)
-	var score_data = _calculate_score_and_synergies(temp_history_for_synergy_check)
+	last_resolved_glyph = p_resolved_glyph # Store the resolved glyph
+
+	# Call with the resolved glyph and the current roll_history (which doesn't include this roll yet)
+	var score_data = _calculate_score_and_synergies(last_resolved_glyph, roll_history)
 
 	if is_instance_valid(hud_instance) and hud_instance.has_method("play_score_fanfare"):
 		hud_instance.play_score_fanfare(
@@ -480,17 +531,21 @@ func _on_rac_fanfare_start_requested(p_rolled_glyph: GlyphData, p_temp_anim_glyp
 			score_data.points_from_synergy, 
 			ScoreManager.get_current_round_score(), 
 			score_data.synergy_messages, 
-			current_success_tier
+			current_success_tier 
 		)
-	else:
+	else: 
+		print("Game: HUD cannot play score fanfare. Telling RollAnimationController it's complete.")
 		if is_instance_valid(roll_animation_controller) and roll_animation_controller.has_method("hud_fanfare_has_completed"):
 			roll_animation_controller.hud_fanfare_has_completed()
 
 func _on_rac_move_to_history_requested(p_animating_glyph_node: TextureRect, p_final_glyph: GlyphData):
+	# ----> ADD/CONFIRM THIS PRINT <----
+	print("Game: _on_rac_move_to_history_requested CALLED for glyph: %s." % p_final_glyph.display_name if is_instance_valid(p_final_glyph) else "Invalid Glyph")
+	
 	if not is_instance_valid(p_animating_glyph_node) or not is_instance_valid(p_final_glyph):
-		printerr("Game: Invalid node or glyph data for move_to_history_requested.")
+		printerr("Game: Invalid node or glyph data for move_to_history_requested. Node: %s, Glyph: %s" % [str(p_animating_glyph_node), str(p_final_glyph)])
 		if is_instance_valid(roll_animation_controller) and roll_animation_controller.has_method("animation_move_to_history_finished"):
-			roll_animation_controller.animation_move_to_history_finished()
+			roll_animation_controller.animation_move_to_history_finished() 
 		return
 
 	var target_slot_center_pos: Vector2
@@ -498,28 +553,65 @@ func _on_rac_move_to_history_requested(p_animating_glyph_node: TextureRect, p_fi
 		target_slot_center_pos = hud_instance.get_next_history_slot_global_position()
 	else: 
 		printerr("Game: HUD cannot provide history slot position for move_to_history.")
-		target_slot_center_pos = Vector2(100, 100)
+		target_slot_center_pos = get_viewport_rect().size / 2.0 
 
 	var tween_to_history = create_tween()
+	tween_to_history.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS) 
 	tween_to_history.finished.connect(_on_internal_move_to_history_tween_finished)
+
 	tween_to_history.set_parallel(true) 
 	var target_visual_pos = target_slot_center_pos - (HISTORY_SLOT_GLYPH_SIZE / 2.0)
+	
+	if not is_instance_valid(p_animating_glyph_node) or not p_animating_glyph_node.is_inside_tree():
+		printerr("Game: p_animating_glyph_node is invalid (%s) or not in tree for history tween." % str(p_animating_glyph_node))
+		if is_instance_valid(roll_animation_controller) and roll_animation_controller.has_method("animation_move_to_history_finished"):
+			roll_animation_controller.animation_move_to_history_finished()
+		return
+		
 	tween_to_history.tween_property(p_animating_glyph_node, "global_position", target_visual_pos, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tween_to_history.tween_property(p_animating_glyph_node, "custom_minimum_size", HISTORY_SLOT_GLYPH_SIZE, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tween_to_history.tween_property(p_animating_glyph_node, "size", HISTORY_SLOT_GLYPH_SIZE, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	
+	# ----> ADD/CONFIRM THIS PRINT <----
+	print("Game: Tween to history STARTED for glyph: %s. Target pos: %s" % [p_final_glyph.display_name, str(target_visual_pos)])
 
 func _on_internal_move_to_history_tween_finished():
+	# ----> ADD/CONFIRM THIS PRINT <----
+	print("Game: _on_internal_move_to_history_tween_finished CALLED.")
 	if is_instance_valid(roll_animation_controller) and roll_animation_controller.has_method("animation_move_to_history_finished"):
 		roll_animation_controller.animation_move_to_history_finished()
 
-func _on_rac_full_animation_sequence_complete(final_glyph_data: GlyphData):
-	if not is_instance_valid(final_glyph_data):
-		printerr("Game: Animation sequence completed with invalid final glyph data.")
-	if is_instance_valid(final_glyph_data):
-		last_rolled_glyph = final_glyph_data
+func _on_rac_full_animation_sequence_complete(final_resolved_glyph_data: GlyphData):
+	# RAC now sends the FINAL RESOLVED glyph.
+	print("Game: RollAnimationController reported full_animation_sequence_complete. Final resolved glyph: ", final_resolved_glyph_data.display_name if final_resolved_glyph_data else "N/A")
+	
+	if not is_instance_valid(final_resolved_glyph_data):
+		printerr("Game: Animation sequence completed with invalid final_resolved_glyph_data. Problems may occur.")
+		# It's crucial that last_resolved_glyph is valid for _finalize_roll_logic_and_proceed
+		# If final_resolved_glyph_data is bad here, last_resolved_glyph might also be bad if fanfare was skipped.
+		# For safety, if fanfare path didn't set last_resolved_glyph, try to set it here.
+		if not is_instance_valid(last_resolved_glyph) and is_instance_valid(final_resolved_glyph_data):
+			last_resolved_glyph = final_resolved_glyph_data
+		elif not is_instance_valid(last_resolved_glyph) and not is_instance_valid(final_resolved_glyph_data):
+			# Major issue, no valid glyph to proceed with.
+			# Consider ending the round with an error state or special handling.
+			# For now, _finalize_roll_logic_and_proceed will print an error.
+			pass 
+	elif not is_instance_valid(last_resolved_glyph):
+		# If fanfare path was skipped or failed to set last_resolved_glyph, use the one from this signal
+		last_resolved_glyph = final_resolved_glyph_data
+	elif last_resolved_glyph != final_resolved_glyph_data:
+		printerr("Game: Mismatch between last_resolved_glyph from fanfare ('%s') and final_resolved_glyph_data from sequence_complete ('%s'). Using sequence_complete." % [last_resolved_glyph.display_name, final_resolved_glyph_data.display_name])
+		last_resolved_glyph = final_resolved_glyph_data # Prioritize the one from sequence complete
+
+	# Update HUD's visual track with the resolved glyph
 	if is_instance_valid(hud_instance) and hud_instance.has_method("add_glyph_to_visual_history"):
-		hud_instance.add_glyph_to_visual_history(last_rolled_glyph)
-	_finalize_roll_logic_and_proceed()
+		if is_instance_valid(last_resolved_glyph): # Ensure we have a valid glyph to add
+			hud_instance.add_glyph_to_visual_history(last_resolved_glyph)
+		else:
+			printerr("Game: Cannot add glyph to visual history, last_resolved_glyph is invalid at sequence_complete.")
+	
+	_finalize_roll_logic_and_proceed() # This updates logical history, checks for round end
 
 func _reset_boons_and_effects():
 	active_boons.clear()
