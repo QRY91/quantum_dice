@@ -38,11 +38,13 @@ vertical_alignment = 1
 
 [node name="LootOptionsContainer" type="HBoxContainer" parent="."]
 custom_minimum_size = Vector2(320, 240)
-layout_mode = 0
-offset_left = 160.0
-offset_top = 160.0
-offset_right = 480.0
-offset_bottom = 400.0
+layout_mode = 1
+anchors_preset = 14
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
 alignment = 1
 
 [node name="HelpLabel" type="Label" parent="."]

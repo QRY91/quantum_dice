@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bo6dui74xutta"
-path="res://.godot/imported/Ace_card.png-2d81e300d2455822a2e8385164dbc3e3.ctex"
+uid="uid://d30hjeth2hs7l"
+path="res://.godot/imported/3.png-d2a5fecc0f22609a0b0aa7c6dea8e136.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/Ace_card.png"
-dest_files=["res://.godot/imported/Ace_card.png-2d81e300d2455822a2e8385164dbc3e3.ctex"]
+source_file="res://assets/sprites/dice/3.png"
+dest_files=["res://.godot/imported/3.png-d2a5fecc0f22609a0b0aa7c6dea8e136.ctex"]
 
 [params]
 
