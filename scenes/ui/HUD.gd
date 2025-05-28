@@ -87,11 +87,12 @@ func update_dice_inventory_display(current_player_dice_array: Array[GlyphData]):
 	for glyph_data in current_player_dice_array:
 		if not is_instance_valid(glyph_data): continue
 		var face_rect := TextureRect.new()
-		face_rect.custom_minimum_size = Vector2(40, 40)
+		face_rect.custom_minimum_size = Vector2(40, 40) # Ensure this matches your design
 		face_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		face_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		face_rect.texture = glyph_data.texture
-		face_rect.tooltip_text = glyph_data.display_name + " (Val: " + str(glyph_data.value) + ")" # Corrected concatenation
+		face_rect.tooltip_text = glyph_data.display_name + " (Val: " + str(glyph_data.value) + ")"
+		face_rect.set_meta("glyph_id", glyph_data.id) # <<< STORE GLYPH ID
 		dice_face_display_container.add_child(face_rect)
 
 # --- Inventory Management ---
@@ -139,6 +140,50 @@ func start_roll_button_animation():
 
 func stop_roll_button_animation_show_result(glyph_data: GlyphData):
 	pass
+
+func trigger_entanglement_visuals(rolled_glyph_slot_index: int, partner_glyph_on_die_data: GlyphData, entanglement_bonus_amount: int):
+	print("HUD: Triggering entanglement visuals for rolled glyph in slot %d and partner '%s' on die. Bonus: +%d" % [rolled_glyph_slot_index, partner_glyph_on_die_data.id, entanglement_bonus_amount])
+
+	# 1. Animate the rolled glyph on the track
+	if is_instance_valid(track_manager) and track_manager.has_method("get_track_slot_by_index"):
+		var slot_node = track_manager.get_track_slot_by_index(rolled_glyph_slot_index)
+		if is_instance_valid(slot_node) and slot_node.has_method("play_entanglement_effect_animation"):
+			slot_node.play_entanglement_effect_animation()
+		elif is_instance_valid(slot_node):
+			printerr("HUD: TrackSlot %d missing play_entanglement_effect_animation method." % rolled_glyph_slot_index)
+		else:
+			printerr("HUD: Could not get valid TrackSlot node for index %d." % rolled_glyph_slot_index)
+	
+	# 2. Animate the partner glyph in the inventory (DiceFaceDisplayContainer)
+	# (This part remains the same as the previous HUD.gd snippet, using metadata)
+	if is_instance_valid(dice_face_display_container) and is_instance_valid(partner_glyph_on_die_data):
+		for child_node in dice_face_display_container.get_children():
+			if child_node is TextureRect:
+				var face_rect: TextureRect = child_node
+				var meta_glyph_id = face_rect.get_meta("glyph_id", "")
+				if meta_glyph_id == partner_glyph_on_die_data.id:
+					print("HUD: Found partner glyph '%s' in inventory for animation." % partner_glyph_on_die_data.id)
+					var tween = create_tween()
+					tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+					tween.set_parallel(true)
+					var original_scale = face_rect.scale
+					var pulse_scale = original_scale * 1.4 # Make inventory pulse a bit more distinct
+					var original_modulate = face_rect.modulate
+					var pulse_modulate_color = Color.SKY_BLUE # Slightly different shade
+
+					tween.tween_property(face_rect, "scale", pulse_scale, 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+					tween.tween_property(face_rect, "scale", original_scale, 0.25).set_delay(0.15).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+					tween.tween_property(face_rect, "modulate", pulse_modulate_color, 0.1).set_trans(Tween.TRANS_LINEAR)
+					tween.tween_property(face_rect, "modulate", original_modulate, 0.3).set_delay(0.1).set_trans(Tween.TRANS_LINEAR)
+					break 
+	
+	# 3. Score pop-up for entanglement bonus
+	if entanglement_bonus_amount > 0 and is_instance_valid(score_label):
+		var popup_text = "+%d Entangled!" % entanglement_bonus_amount
+		var popup_color = Color.CYAN # Or Color.SKY_BLUE
+		# Position it slightly differently from other popups
+		var start_pos = score_label.global_position + Vector2(randf_range(-10, 10), -60 + randf_range(-5, 5)) 
+		_create_score_popup_label(popup_text, start_pos, popup_color, 0.15) # Slight delay
 
 func play_score_fanfare(points_from_roll: int, points_from_synergy: int, new_total_round_score: int, synergy_messages: Array[String], success_tier: int):
 	# print("HUD: play_score_fanfare. Roll pts: %d, Synergy pts: %d, NEW TOTAL SCORE: %d, Tier: %d, Msgs: %s" % [points_from_roll, points_from_synergy, new_total_round_score, success_tier, str(synergy_messages)])
@@ -270,3 +315,4 @@ func show_boss_incoming_indicator(show: bool, message: String = "Boss Incoming!"
 		boss_indicator_label.visible = true
 	else:
 		boss_indicator_label.visible = false
+

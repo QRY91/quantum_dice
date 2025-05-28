@@ -29,6 +29,8 @@ var is_cornerstone_logic_unlocked: bool = false
 # --- Visual Node References ---
 @onready var glyph_display: TextureRect = $GlyphDisplay
 @onready var slot_background: TextureRect = $SlotBackground
+# Optional: Add an AnimationPlayer node to TrackSlot.tscn for more complex animations
+# @onready var animation_player: AnimationPlayer = $AnimationPlayer
 
 func _set_current_state(new_state: SlotState):
 	if slot_index == 2:
@@ -259,3 +261,35 @@ func _update_visuals():
 		print("TrackSlot[2] (Path: %s): _update_visuals METHOD COMPLETED." % get_path()) # New line
 		
 	
+# --- New function for entanglement visual effect ---
+func play_entanglement_effect_animation():
+	# Simple pulse effect using a tween on the glyph_display
+	if not is_instance_valid(glyph_display):
+		printerr("TrackSlot[%d]: Cannot play entanglement animation, glyph_display is invalid." % slot_index)
+		return
+
+	print("TrackSlot[%d]: Playing entanglement effect animation." % slot_index)
+	
+	var tween = create_tween()
+	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS) # Ensure it plays even if game pauses briefly
+	tween.set_parallel(true) # Scale and modulate can happen together
+
+	var original_scale = glyph_display.scale
+	var pulse_scale = original_scale * 1.3
+	var original_modulate = glyph_display.modulate
+	var pulse_modulate_color = Color.LIGHT_SKY_BLUE # Or Color.CYAN, or a custom "energy" color
+
+	# Pulse scale
+	tween.tween_property(glyph_display, "scale", pulse_scale, 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(glyph_display, "scale", original_scale, 0.25).set_delay(0.15).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+	
+	# Pulse color (modulate)
+	tween.tween_property(glyph_display, "modulate", pulse_modulate_color, 0.1).set_trans(Tween.TRANS_LINEAR)
+	tween.tween_property(glyph_display, "modulate", original_modulate, 0.3).set_delay(0.1).set_trans(Tween.TRANS_LINEAR)
+
+	# If using AnimationPlayer:
+	# if is_instance_valid(animation_player) and animation_player.has_animation("entangled_pulse"):
+	# 	animation_player.play("entangled_pulse")
+	# else:
+	# 	# Fallback to tween or print error
+	# 	printerr("TrackSlot[%d]: Entanglement AnimationPlayer or 'entangled_pulse' animation not found." % slot_index)

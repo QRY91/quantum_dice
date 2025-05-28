@@ -135,3 +135,19 @@ func update_specific_cornerstone_logic_unlocked(slot_index_zero_based: int, is_u
 			slot_node.unlock_cornerstone_logic(is_unlocked)
 		else:
 			printerr("TrackManager: Slot %d cannot update cornerstone logic (unlock_cornerstone_logic method missing or invalid slot)." % slot_index_zero_based)
+
+func get_track_slot_by_index(index: int) -> Node: # Return type Node for flexibility, cast to TrackSlot later
+	if index >= 0 and index < track_slots.size():
+		return track_slots[index]
+	printerr("TrackManager: get_track_slot_by_index - Index %d out of bounds." % index)
+	return null
+
+
+# You might also need a way to find a slot by the GlyphData it contains if the index isn't readily available
+# func get_track_slot_by_glyph_id(glyph_id: String) -> Node:
+# 	for slot_node in track_slots:
+# 		if is_instance_valid(slot_node) and slot_node.has_method("get_occupied_glyph_data"):
+# 			var occupied_glyph = slot_node.get_occupied_glyph_data() # Assumes TrackSlot has this getter
+# 			if is_instance_valid(occupied_glyph) and occupied_glyph.id == glyph_id:
+# 				return slot_node
+# 	return null

@@ -312,41 +312,82 @@ func _perform_roll():
 func _calculate_score_and_synergies(resolved_glyph_for_scoring: GlyphData, current_roll_history: Array[GlyphData]) -> Dictionary:
 	var points_from_roll: int = 0
 	var points_from_synergy: int = 0
+	var points_from_entanglement: int = 0 # New variable for entanglement bonus
 	var synergy_messages: Array[String] = []
+	var entanglement_messages: Array[String] = [] # For entanglement feedback
 	current_success_tier = SuccessTier.NONE
 
-	if not is_instance_valid(resolved_glyph_for_scoring): # Use the passed parameter
+	if not is_instance_valid(resolved_glyph_for_scoring):
 		printerr("Game: _calculate_score_and_synergies called with invalid resolved_glyph_for_scoring.")
-		return {"points_from_roll":0, "points_from_synergy":0, "synergy_messages":[]}
+		return {"points_from_roll":0, "points_from_synergy":0, "points_from_entanglement":0, "synergy_messages":[], "entanglement_messages":[]}
 	
-	# Score based on the RESOLVED glyph
+	# 1. Base score from the rolled (resolved) glyph
 	points_from_roll = resolved_glyph_for_scoring.value 
-	if resolved_glyph_for_scoring.type == "dice": # Check type of resolved glyph
+	if resolved_glyph_for_scoring.type == "dice":
 		points_from_roll += extra_points_per_dice_glyph_boon
 	
-	# Cornerstone bonus check based on the logical slot index (size of history *before* adding current resolved glyph)
-	var current_logical_slot_index = current_roll_history.size() # Use passed current_roll_history
+	# 2. Cornerstone bonus (if applicable)
+	var current_logical_slot_index = current_roll_history.size()
 	if ProgressionManager.is_cornerstone_effect_active(2) and current_logical_slot_index == 2:
 		points_from_roll += CORNERSTONE_SLOT_3_BONUS 
-		PlayerNotificationSystem.display_message("Cornerstone Slot 3 Bonus: +%d Score!" % CORNERSTONE_SLOT_3_BONUS)
+		PlayerNotificationSystem.display_message("Cornerstone Slot 3 Bonus: +%d Score!" % CORNERSTONE_SLOT_3_BONUS) # This could be part of synergy_messages
 
-	ScoreManager.add_to_round_score(points_from_roll)
+	# --- Entanglement Check (Photon Twins "Shared Momentum") ---
+	if resolved_glyph_for_scoring.is_entangled and \
+	   resolved_glyph_for_scoring.entangled_effect_type == GlyphData.EntangledEffectType.SHARED_MOMENTUM_SCORE_BONUS:
+		
+		var player_dice: Array[GlyphData] = PlayerDiceManager.get_current_dice()
+		for glyph_on_die in player_dice:
+			if is_instance_valid(glyph_on_die) and \
+			   glyph_on_die.is_entangled and \
+			   glyph_on_die.entanglement_id == resolved_glyph_for_scoring.entanglement_id and \
+			   glyph_on_die.id != resolved_glyph_for_scoring.id:
+				
+				var entanglement_bonus_value = glyph_on_die.value # Get the bonus value
+				points_from_entanglement += entanglement_bonus_value
+				var message = "Entangled! '%s' on dice adds +%d (via %s)" % [glyph_on_die.display_name, entanglement_bonus_value, resolved_glyph_for_scoring.display_name]
+				entanglement_messages.append(message)
+				PlayerNotificationSystem.display_message(message)
+				
+				# Visual feedback trigger
+				if is_instance_valid(hud_instance) and hud_instance.has_method("trigger_entanglement_visuals"):
+					# We need the slot index of the resolved_glyph_for_scoring
+					# current_roll_history.size() is the index where it WILL be placed.
+					var rolled_glyph_slot_idx = current_roll_history.size() 
+					hud_instance.trigger_entanglement_visuals(rolled_glyph_slot_idx, glyph_on_die, entanglement_bonus_value) # Pass index, partner, and bonus
 
-	# Synergies are checked with a temporary history that includes the current resolved glyph
-	var temp_history_with_current_resolved_glyph = current_roll_history.duplicate(true) # Use passed current_roll_history
-	temp_history_with_current_resolved_glyph.append(resolved_glyph_for_scoring) # Append the current resolved glyph
+				print("Game: Entanglement triggered: %s (rolled) with %s (on dice). Bonus: +%d" % [resolved_glyph_for_scoring.id, glyph_on_die.id, entanglement_bonus_value])
+				break
 	
-	var eval_result = _evaluate_synergies_and_boons(temp_history_with_current_resolved_glyph) # Pass history + current resolved
+	# Add points from roll and entanglement to score before synergy calculation
+	ScoreManager.add_to_round_score(points_from_roll + points_from_entanglement)
+
+	# 3. Standard Synergies and Boons
+	# Synergies are checked with a temporary history that includes the current resolved glyph
+	var temp_history_with_current_resolved_glyph = current_roll_history.duplicate(true)
+	temp_history_with_current_resolved_glyph.append(resolved_glyph_for_scoring)
+	
+	var eval_result = _evaluate_synergies_and_boons(temp_history_with_current_resolved_glyph)
 	points_from_synergy = eval_result.bonus_score
-	synergy_messages = eval_result.messages
+	synergy_messages.append_array(eval_result.messages) # Append boon messages
 	
 	if points_from_synergy > 0: 
-		ScoreManager.add_to_round_score(points_from_synergy)
+		ScoreManager.add_to_round_score(points_from_synergy) # Add synergy points
 	
-	ScoreManager.add_to_total_score(points_from_roll + points_from_synergy)
+	# Add all points for this roll to total accumulated score
+	ScoreManager.add_to_total_score(points_from_roll + points_from_entanglement + points_from_synergy)
 	
-	print("Game: Score calculated for resolved glyph '%s'. Roll pts: %d, Synergy pts: %d" % [resolved_glyph_for_scoring.display_name, points_from_roll, points_from_synergy])
-	return {"points_from_roll":points_from_roll, "points_from_synergy":points_from_synergy, "synergy_messages":synergy_messages}
+	# Combine messages for HUD
+	var all_messages_for_fanfare = entanglement_messages.duplicate()
+	all_messages_for_fanfare.append_array(synergy_messages)
+
+	print("Game: Score calculated for resolved glyph '%s'. Roll: %d, Entangle: %d, Synergy: %d" % [resolved_glyph_for_scoring.display_name, points_from_roll, points_from_entanglement, points_from_synergy])
+	return {
+		"points_from_roll": points_from_roll, 
+		"points_from_synergy": points_from_synergy, 
+		"points_from_entanglement": points_from_entanglement, # Pass this back too
+		"synergy_messages": all_messages_for_fanfare # Combined messages
+	}
 
 func _evaluate_synergies_and_boons(p_history_for_check: Array[GlyphData]) -> Dictionary:
 	var total_synergy_bonus: int = 0
@@ -511,7 +552,6 @@ func _on_rac_logical_roll_requested():
 		printerr("Game: Cannot send logical roll result back to RollAnimationController.")
 
 func _on_rac_fanfare_start_requested(p_resolved_glyph: GlyphData, _p_temp_anim_glyph_node: TextureRect):
-	# RAC now sends the RESOLVED glyph.
 	print("Game: RollAnimationController requested fanfare start for resolved_glyph: '%s'." % p_resolved_glyph.display_name if is_instance_valid(p_resolved_glyph) else "Invalid Glyph")
 	
 	if not is_instance_valid(p_resolved_glyph):
@@ -520,17 +560,22 @@ func _on_rac_fanfare_start_requested(p_resolved_glyph: GlyphData, _p_temp_anim_g
 			roll_animation_controller.hud_fanfare_has_completed()
 		return
 
-	last_resolved_glyph = p_resolved_glyph # Store the resolved glyph
+	last_resolved_glyph = p_resolved_glyph
 
-	# Call with the resolved glyph and the current roll_history (which doesn't include this roll yet)
 	var score_data = _calculate_score_and_synergies(last_resolved_glyph, roll_history)
 
 	if is_instance_valid(hud_instance) and hud_instance.has_method("play_score_fanfare"):
+		# HUD's play_score_fanfare might need adjustment if you want to show entanglement points separately
+		# For now, let's assume points_from_roll can include the entanglement bonus for the popup.
+		# Or, add a new parameter to play_score_fanfare for entanglement points.
+		# Let's combine them for the "roll points" for simplicity now.
+		var combined_direct_points = score_data.points_from_roll + score_data.points_from_entanglement
+		
 		hud_instance.play_score_fanfare(
-			score_data.points_from_roll, 
+			combined_direct_points, # Roll points + Entanglement points
 			score_data.points_from_synergy, 
 			ScoreManager.get_current_round_score(), 
-			score_data.synergy_messages, 
+			score_data.synergy_messages, # Contains both entanglement and synergy/boon messages
 			current_success_tier 
 		)
 	else: 

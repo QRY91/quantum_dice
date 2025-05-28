@@ -24,6 +24,7 @@ ScoreManager="*res://scripts/managers/ScoreManager.gd"
 BoonManager="*res://scripts/managers/BoonManager.gd"
 PlayerDiceManager="*res://scripts/managers/PlayerDiceManager.gd"
 SceneUIManager="*res://scripts/managers/SceneUIManager.gd"
+PaletteManager="*res://scripts/managers/PaletteManager.gd"
 
 [display]
 
@@ -85,6 +86,7 @@ navigate_down={
 
 [rendering]
 
+textures/canvas_textures/default_texture_filter=0
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 environment/defaults/default_clear_color=Color(0, 0, 0, 1)

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c1yht5d2ptnw3"
-path="res://.godot/imported/superposition.png-67767fd02cc7f23e149b38162dc28f06.ctex"
+uid="uid://c80p0jq5dpx5d"
+path="res://.godot/imported/alpha.png-69ecb33bc64260580a4f2925ce955820.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/superposition.png"
-dest_files=["res://.godot/imported/superposition.png-67767fd02cc7f23e149b38162dc28f06.ctex"]
+source_file="res://assets/sprites/alpha.png"
+dest_files=["res://.godot/imported/alpha.png-69ecb33bc64260580a4f2925ce955820.ctex"]
 
 [params]
 
@@ -31,4 +31,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=0
+detect_3d/compress_to=1

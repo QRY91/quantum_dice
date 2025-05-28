@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c1yht5d2ptnw3"
-path="res://.godot/imported/superposition.png-67767fd02cc7f23e149b38162dc28f06.ctex"
+uid="uid://byi6c4dlcx80r"
+path="res://.godot/imported/beeg_sheet.png-5b63d07dc3eda6b892a01c1347a89120.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/superposition.png"
-dest_files=["res://.godot/imported/superposition.png-67767fd02cc7f23e149b38162dc28f06.ctex"]
+source_file="res://assets/sprites/beeg_sheet.png"
+dest_files=["res://.godot/imported/beeg_sheet.png-5b63d07dc3eda6b892a01c1347a89120.ctex"]
 
 [params]
 

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PaletteDefinition" load_steps=2 format=3 uid="uid://bt070pnag1i2a"]
+
+[ext_resource type="Script" path="res://resources/palettes/palette_definition.gd" id="1_1tarj"]
+
+[resource]
+script = ExtResource("1_1tarj")
+id = &"default_bw"
+display_name = "Classic Game"
+palette_background_color = Color(0, 0, 0, 1)
+palette_main_color = Color(1, 1, 1, 1)
+palette_accent_color = Color(1, 0, 0, 1)
+is_unlocked_by_default = true

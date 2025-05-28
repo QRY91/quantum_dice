@@ -10,49 +10,63 @@ var starting_dice_configuration: Array[GlyphData] = []
 ## List of glyphs that can be offered as loot.
 var potential_loot_glyphs: Array[GlyphData] = []
 
+const GLYPHS_BASE_PATH: String = "res://resources/glyphs/"
 
 func _ready():
-	_load_all_glyph_resources()
-	_setup_starting_configurations()
+	_load_all_glyph_resources_recursively(GLYPHS_BASE_PATH)
+	_setup_starting_configurations() # This can stay the same as it uses all_glyphs
 	print("GlyphDB initialized. Loaded %d glyphs. Starting dice: %d faces. Potential loot: %d types." % [all_glyphs.size(), starting_dice_configuration.size(), potential_loot_glyphs.size()])
 
-
-func _load_all_glyph_resources():
-	all_glyphs.clear()
-	var dir = DirAccess.open("res://resources/glyphs/")
+# Recursive function to load glyph resources
+func _load_all_glyph_resources_recursively(path: String):
+	var dir = DirAccess.open(path)
 	if dir:
 		dir.list_dir_begin()
 		var file_name = dir.get_next()
 		while file_name != "":
-			if not dir.current_is_dir() and file_name.ends_with(".tres"): # Ensure it's a .tres file
-				var glyph_resource_path = "res://resources/glyphs/" + file_name
-				var glyph_data: GlyphData = load(glyph_resource_path)
-				if glyph_data and glyph_data is GlyphData: # Check if loaded and correct type
-					if not all_glyphs.has(glyph_data.id):
+			if file_name == "." or file_name == "..": # Skip current and parent directory entries
+				file_name = dir.get_next()
+				continue
+
+			var full_path = path.path_join(file_name) # Use path_join for robust path construction
+
+			if dir.current_is_dir():
+				_load_all_glyph_resources_recursively(full_path) # Recurse into subdirectory
+			elif file_name.ends_with(".tres"): # Ensure it's a .tres file
+				var glyph_data: GlyphData = load(full_path)
+				if glyph_data is GlyphData: # Check if loaded and correct type
+					if glyph_data.id == "" or glyph_data.id == "unknown_glyph": # Check for uninitialized/default ID
+						printerr("GlyphDB Warning: GlyphData resource at path '", full_path, "' has a default or empty ID ('", glyph_data.id,"'). Skipping.")
+					elif not all_glyphs.has(glyph_data.id):
 						all_glyphs[glyph_data.id] = glyph_data
+						# print("GlyphDB: Loaded glyph '", glyph_data.id, "' from path: ", full_path) # Optional: for verbose logging
 					else:
-						printerr("GlyphDB Error: Duplicate glyph ID found: '", glyph_data.id, "' from path: ", glyph_resource_path)
+						printerr("GlyphDB Error: Duplicate glyph ID found: '", glyph_data.id, "'. Path: '", full_path, "'. Previous was: '", all_glyphs[glyph_data.id].resource_path, "'. Overwriting.")
+						all_glyphs[glyph_data.id] = glyph_data # Decide on overwrite or skip behavior
 				else:
-					printerr("GlyphDB Error: Failed to load GlyphData resource at path: ", glyph_resource_path, " or it's not of type GlyphData.")
+					# This might also catch non-GlyphData .tres files if they exist in the folders
+					# print("GlyphDB Info: File at path '", full_path, "' is a .tres file but not of type GlyphData. Skipping.")
+					pass # Silently skip non-GlyphData .tres files
+			
 			file_name = dir.get_next()
-		# dir.list_dir_end() # No longer needed in Godot 4 for DirAccess
+		# dir.list_dir_end() # Not strictly necessary in Godot 4 for DirAccess after loop
 	else:
-		printerr("GlyphDB Error: Could not open directory 'res://resources/glyphs/'")
+		printerr("GlyphDB Error: Could not open directory '", path, "' for recursive loading.")
 
 
-var add_test_runes_to_start: bool = true # Set to true for testing
+var add_test_runes_to_start: bool = true
 func _setup_starting_configurations():
 	starting_dice_configuration.clear()
 	potential_loot_glyphs.clear()
 
-	# Define the player's starting dice faces by their IDs
-	# Ensure these IDs match the 'id' field in your .tres files
 	var starting_ids = ["dice_1", "dice_2", "dice_3", "dice_4", "dice_5", "dice_6"]
 	if add_test_runes_to_start:
-		# Add the runes needed for a specific phrase directly to the starting dice
 		starting_ids.append("rune_sowilo")
 		starting_ids.append("rune_fehu")
-		# starting_ids.append("rune_laguz") # etc.
+		# Also add your new Photon Twins if you want them in the starting dice for testing
+		# starting_ids.append("photon_alpha")
+		# starting_ids.append("photon_beta")
+
 
 	for glyph_id in starting_ids:
 		if all_glyphs.has(glyph_id):
@@ -60,99 +74,99 @@ func _setup_starting_configurations():
 		else:
 			printerr("GlyphDB Warning: Starting glyph ID '", glyph_id, "' not found in all_glyphs.")
 
-	# Define potential loot glyphs
-	# For example, anything not of type "dice"
-	for glyph_id in all_glyphs: # Iterate through dictionary keys
+	for glyph_id in all_glyphs:
 		var glyph: GlyphData = all_glyphs[glyph_id]
-		if glyph.type != "dice": # Customize this logic as needed
-			potential_loot_glyphs.append(glyph)
+		# Adjust loot pool criteria as needed
+		# Example: Exclude dice, superposition, and photon twins from general loot initially
+		# if glyph.type != "dice" and glyph.type != "superposition" and not glyph.id.begins_with("photon_"):
+		if glyph.type != "dice": # Simpler: all non-dice are lootable
+			if not potential_loot_glyphs.has(glyph): # Ensure no duplicates if IDs could be non-unique (though they shouldn't)
+				potential_loot_glyphs.append(glyph)
 	
 	if starting_dice_configuration.is_empty() and not all_glyphs.is_empty():
 		print("GlyphDB Warning: Starting dice configuration is empty despite loaded glyphs. Check starting_ids.")
 	if potential_loot_glyphs.is_empty() and all_glyphs.size() > starting_dice_configuration.size():
-		print("GlyphDB Warning: No potential loot glyphs identified based on current criteria (type != 'dice').")
+		print("GlyphDB Warning: No potential loot glyphs identified based on current criteria.")
 
-## Retrieves a specific glyph by its ID.
-func get_glyph_by_id(id: String) -> GlyphData:
-	if all_glyphs.has(id):
-		return all_glyphs[id]
-	printerr("GlyphDB Error: Glyph with ID '", id, "' not found.")
+
+func get_glyph_by_id(id: String) -> GlyphData: # Parameter type should be String or StringName consistently
+	var s_name_id = StringName(id) # Convert to StringName if id is passed as String
+	if all_glyphs.has(s_name_id):
+		return all_glyphs[s_name_id]
+	printerr("GlyphDB Error: Glyph with ID '", id, "' (StringName: '", str(s_name_id), "') not found.")
 	return null
 
-var force_specific_loot_for_testing: bool = true # Set to true to enable test loot
+var force_specific_loot_for_testing: bool = true
 var test_loot_sequence: Array[String] = [
+	"photon_alpha", # Test getting photon twins
+	"photon_beta",
+	"superposition_dice_or_card",
+	"superposition_dice_or_rune",
 	"rune_sowilo", 
 	"rune_fehu", 
 	"rune_laguz", 
 	"rune_ansuz"
-	# Add more rune IDs you want to test acquiring
 ]
 var current_test_loot_index: int = 0
 
-# Helper for fallback if you want to keep original random logic easily accessible
 func _get_truly_random_loot(count: int) -> Array[GlyphData]:
-	var available_loot: Array[GlyphData] = potential_loot_glyphs.duplicate()
+	var available_loot_pool: Array[GlyphData] = potential_loot_glyphs.duplicate()
 	var loot_options: Array[GlyphData] = []
-	if available_loot.is_empty(): return loot_options
-	available_loot.shuffle()
-	for i in range(min(count, available_loot.size())):
-		loot_options.append(available_loot[i])
+	if available_loot_pool.is_empty(): return loot_options
+	
+	available_loot_pool.shuffle()
+	for i in range(min(count, available_loot_pool.size())):
+		loot_options.append(available_loot_pool[i])
 	return loot_options
 
 func get_random_loot_options(count: int, _current_player_dice_faces_unused: Array[GlyphData] = []) -> Array[GlyphData]:
 	if force_specific_loot_for_testing:
 		var forced_loot_options: Array[GlyphData] = []
+		var attempted_ids_this_call: Array[String] = [] # To avoid offering same test item twice in one call if count > 1
+
 		for i in range(count):
 			if current_test_loot_index < test_loot_sequence.size():
 				var glyph_id_to_force = test_loot_sequence[current_test_loot_index]
-				var glyph_data = get_glyph_by_id(glyph_id_to_force)
-				if is_instance_valid(glyph_data):
-					forced_loot_options.append(glyph_data)
-				else:
-					printerr("GlyphDB Test Loot: Could not find glyph with ID: ", glyph_id_to_force)
-				current_test_loot_index += 1
-			else:
-				# Ran out of specific test loot, offer random from remaining potential loot
-				# This part is simplified; you might want to ensure no duplicates with already forced ones
-				if not potential_loot_glyphs.is_empty():
-					var random_glyph = potential_loot_glyphs[randi() % potential_loot_glyphs.size()]
-					if is_instance_valid(random_glyph) and not forced_loot_options.has(random_glyph):
-						forced_loot_options.append(random_glyph)
+				
+				# Ensure we don't offer the same forced item multiple times in a single loot offering
+				var max_attempts_for_unique_test_item = test_loot_sequence.size() # Safety break
+				var attempts = 0
+				while attempted_ids_this_call.has(glyph_id_to_force) and attempts < max_attempts_for_unique_test_item :
+					current_test_loot_index = (current_test_loot_index + 1) % test_loot_sequence.size() # Cycle through test loot
+					glyph_id_to_force = test_loot_sequence[current_test_loot_index]
+					attempts += 1
+				
+				if not attempted_ids_this_call.has(glyph_id_to_force):
+					var glyph_data = get_glyph_by_id(glyph_id_to_force)
+					if is_instance_valid(glyph_data):
+						forced_loot_options.append(glyph_data)
+						attempted_ids_this_call.append(glyph_id_to_force)
+					else:
+						printerr("GlyphDB Test Loot: Could not find glyph with ID: ", glyph_id_to_force)
+					current_test_loot_index = (current_test_loot_index + 1) # Move to next for next *call* or next item in *this* call
+				else: # Could not find a unique test item for this slot
+					pass # Will fall through to random if not enough unique test items for 'count'
+			else: # Ran out of specific test loot sequence
+				current_test_loot_index = 0 # Reset for next time if desired
+				break # Stop trying to add forced items if sequence exhausted
+
+		# If not enough forced items were found for the requested count, fill with random
+		var remaining_to_fill = count - forced_loot_options.size()
+		if remaining_to_fill > 0:
+			var random_fill_options = _get_truly_random_loot(remaining_to_fill)
+			# Ensure no duplicates with already forced ones (simple check by id)
+			for random_glyph in random_fill_options:
+				var already_forced = false
+				for forced_glyph in forced_loot_options:
+					if forced_glyph.id == random_glyph.id:
+						already_forced = true
+						break
+				if not already_forced:
+					forced_loot_options.append(random_glyph)
+					if forced_loot_options.size() == count: break # Stop if we filled up
 		
-		print("GlyphDB: FORCING TEST LOOT: ", forced_loot_options)
-		if forced_loot_options.is_empty() and not potential_loot_glyphs.is_empty(): # Fallback if test sequence is short
-			return _get_truly_random_loot(count) # Call a helper for actual random if test options exhausted
+		print("GlyphDB: FORCING/PROVIDING TEST LOOT: ", forced_loot_options)
 		return forced_loot_options
 
-	# --- Original random loot logic ---
-		# The _current_player_dice_faces_unused parameter is now ignored for exclusion purposes,
-	# but kept for signature compatibility if other parts of your code call it with that argument.
-	# You can remove it entirely if no other code passes it.
-
-	var available_loot: Array[GlyphData] = []
-
-	# Directly use potential_loot_glyphs as the base for what can be offered.
-	# We are no longer excluding based on what the player already has.
-	if potential_loot_glyphs.is_empty():
-		print("GlyphDB: No 'potential_loot_glyphs' defined at all. Cannot offer loot.")
-		return [] # Return empty if the base loot pool itself is empty
-
-	# Make a copy to shuffle without modifying the original potential_loot_glyphs array
-	available_loot = potential_loot_glyphs.duplicate() 
-	
-	var loot_options: Array[GlyphData] = []
-	if available_loot.is_empty(): # Should only happen if potential_loot_glyphs was empty
-		# This print is a bit redundant now given the check above, but safe.
-		# print("GlyphDB: No available loot options to choose from (pool was empty or became empty).")
-		return loot_options 
-
-	available_loot.shuffle() # Randomize the order of all potential loot items
-	
-	for i in range(min(count, available_loot.size())):
-		loot_options.append(available_loot[i])
-		
-	if loot_options.is_empty() and not potential_loot_glyphs.is_empty():
-		# This case would be unusual now unless 'count' is 0 or less.
-		print("GlyphDB: Loot options ended up empty despite a populated potential_loot_glyphs pool.")
-
-	return loot_options
+	# --- Original random loot logic (kept as fallback) ---
+	return _get_truly_random_loot(count)

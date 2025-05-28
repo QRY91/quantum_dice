@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="GlyphData" load_steps=3 format=3 uid="uid://de8fpq7qaxkqv"]
 
 [ext_resource type="Script" path="res://scripts/resources/GlyphData.gd" id="1_1rjvd"]
-[ext_resource type="Texture2D" uid="uid://dtfthxawdgfj5" path="res://assets/sprites/1.png" id="2_4m2rg"]
+[ext_resource type="Texture2D" uid="uid://bkjbkt7ca4hbt" path="res://resources/atlas/glyph_dice_1_atlas.tres" id="2_082xt"]
 
 [resource]
 script = ExtResource("1_1rjvd")
@@ -9,7 +9,10 @@ id = "dice_1"
 display_name = "1"
 type = "dice"
 value = 1
-texture = ExtResource("2_4m2rg")
+texture = ExtResource("2_082xt")
 suit = ""
 is_superposition = false
 superposition_outcomes = Array[ExtResource("1_1rjvd")]([])
+is_entangled = false
+entanglement_id = &""
+entangled_effect_type = 0

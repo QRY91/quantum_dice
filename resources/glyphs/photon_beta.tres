@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="GlyphData" load_steps=3 format=3 uid="uid://dnnfl8jfyetjj"]
+
+[ext_resource type="Script" path="res://scripts/resources/GlyphData.gd" id="1_yms51"]
+[ext_resource type="Texture2D" uid="uid://krf0sidpyjtl" path="res://assets/sprites/beta.png" id="2_iyuje"]
+
+[resource]
+script = ExtResource("1_yms51")
+id = "photon_beta"
+display_name = "Photon Beta"
+type = "quantum"
+value = 2
+texture = ExtResource("2_iyuje")
+suit = ""
+is_superposition = false
+superposition_outcomes = Array[ExtResource("1_yms51")]([])
+is_entangled = true
+entanglement_id = &"photon_pair_01"
+entangled_effect_type = 1

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="GlyphData" load_steps=3 format=3 uid="uid://bwmtxja64sega"]
+
+[ext_resource type="Script" path="res://scripts/resources/GlyphData.gd" id="1_ibrtl"]
+[ext_resource type="Texture2D" uid="uid://c80p0jq5dpx5d" path="res://assets/sprites/alpha.png" id="2_0ugb0"]
+
+[resource]
+script = ExtResource("1_ibrtl")
+id = "photon_alpha"
+display_name = "Photon Alpha"
+type = "quantum"
+value = 2
+texture = ExtResource("2_0ugb0")
+suit = ""
+is_superposition = false
+superposition_outcomes = Array[ExtResource("1_ibrtl")]([])
+is_entangled = true
+entanglement_id = &"photon_pair_01"
+entangled_effect_type = 1
