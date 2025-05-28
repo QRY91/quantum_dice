@@ -8,17 +8,7 @@ layout_mode = 3
 anchors_preset = 0
 script = ExtResource("1_eu8pb")
 
-[node name="SlotBackground" type="TextureRect" parent="."]
-modulate = Color(0.580392, 0.580392, 0.580392, 1)
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
 [node name="GlyphDisplay" type="TextureRect" parent="."]
-visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -27,3 +17,12 @@ grow_horizontal = 2
 grow_vertical = 2
 expand_mode = 1
 stretch_mode = 5
+
+[node name="SlotBackground" type="TextureRect" parent="."]
+modulate = Color(0.580392, 0.580392, 0.580392, 1)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2

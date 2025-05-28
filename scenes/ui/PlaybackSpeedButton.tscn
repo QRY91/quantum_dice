@@ -4,6 +4,7 @@
 [ext_resource type="Theme" uid="uid://s6n6onv1nmd5" path="res://resources/themes/quantum_dice_theme.tres" id="2_8yhms"]
 
 [node name="PlaybackSpeedButton" type="TextureButton"]
+texture_filter = 1
 custom_minimum_size = Vector2(40, 40)
 anchors_preset = 15
 anchor_right = 1.0
@@ -16,6 +17,7 @@ grow_vertical = 2
 script = ExtResource("1_xuwya")
 
 [node name="Label" type="Label" parent="."]
+texture_filter = 1
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 0
 offset_right = 40.0
