@@ -6,6 +6,7 @@ extends Node
 signal main_menu_start_game_pressed
 signal loot_screen_loot_selected(chosen_glyph: GlyphData)
 signal loot_screen_skipped
+signal loot_screen_inventory_requested # <<< NEW SIGNAL
 signal game_over_retry_pressed
 signal game_over_main_menu_pressed
 
@@ -19,8 +20,6 @@ var main_menu_instance: Control = null
 var loot_screen_instance: Control = null
 var game_over_instance: Control = null
 
-# Parent node for UI scenes (e.g., Game.gd's UICanvas)
-# This needs to be set by Game.gd after SceneUIManager is ready.
 var ui_parent_node: Node = null
 
 func _ready():
@@ -30,7 +29,7 @@ func set_ui_parent_node(parent: Node):
 	if is_instance_valid(parent):
 		ui_parent_node = parent
 		print("SceneUIManager: UI Parent Node set.")
-		_ensure_scenes_instantiated() # Instantiate scenes once parent is known
+		_ensure_scenes_instantiated()
 	else:
 		printerr("SceneUIManager: Invalid UI Parent Node provided.")
 
@@ -44,8 +43,8 @@ func _ensure_scenes_instantiated():
 		main_menu_instance = main_menu_scene.instantiate()
 		ui_parent_node.add_child(main_menu_instance)
 		if main_menu_instance.has_signal("start_game_pressed"):
-			main_menu_instance.start_game_pressed.connect(Callable(self, "_on_main_menu_start_game_internal"))
-		main_menu_instance.hide() # Start hidden
+			main_menu_instance.start_game_pressed.connect(_on_main_menu_start_game_internal) # Callable self implied
+		main_menu_instance.hide()
 		print("SceneUIManager: MainMenu instantiated.")
 
 	# Loot Screen
@@ -53,9 +52,14 @@ func _ensure_scenes_instantiated():
 		loot_screen_instance = loot_screen_scene.instantiate()
 		ui_parent_node.add_child(loot_screen_instance)
 		if loot_screen_instance.has_signal("loot_selected"):
-			loot_screen_instance.loot_selected.connect(Callable(self, "_on_loot_selected_internal"))
-		if loot_screen_instance.has_signal("skip_loot_pressed"): # Assuming LootScreen.gd has this
-			loot_screen_instance.skip_loot_pressed.connect(Callable(self, "_on_loot_skipped_internal"))
+			loot_screen_instance.loot_selected.connect(_on_loot_selected_internal)
+		if loot_screen_instance.has_signal("skip_loot_pressed"):
+			loot_screen_instance.skip_loot_pressed.connect(_on_loot_skipped_internal)
+		# Connect to the LootScreen's request for inventory
+		if loot_screen_instance.has_signal("request_inventory_panel_show"): # Signal from LootScreen.gd
+			loot_screen_instance.request_inventory_panel_show.connect(_on_loot_screen_inventory_requested_internal) # Callable self implied
+		else:
+			printerr("SceneUIManager: LootScreen instance is missing 'request_inventory_panel_show' signal.")
 		loot_screen_instance.hide()
 		print("SceneUIManager: LootScreen instantiated.")
 
@@ -64,23 +68,21 @@ func _ensure_scenes_instantiated():
 		game_over_instance = game_over_screen_scene.instantiate()
 		ui_parent_node.add_child(game_over_instance)
 		if game_over_instance.has_signal("retry_pressed"):
-			game_over_instance.retry_pressed.connect(Callable(self, "_on_game_over_retry_internal"))
+			game_over_instance.retry_pressed.connect(_on_game_over_retry_internal)
 		if game_over_instance.has_signal("main_menu_pressed"):
-			game_over_instance.main_menu_pressed.connect(Callable(self, "_on_game_over_main_menu_internal"))
+			game_over_instance.main_menu_pressed.connect(_on_game_over_main_menu_internal)
 		game_over_instance.hide()
 		print("SceneUIManager: GameOverScreen instantiated.")
 
 
 # --- Public Methods for Game.gd to Call ---
 func show_main_menu():
-	_ensure_scenes_instantiated() # Ensure it's ready
+	_ensure_scenes_instantiated()
 	if is_instance_valid(main_menu_instance):
-		# Hide others
 		if is_instance_valid(loot_screen_instance): loot_screen_instance.hide()
 		if is_instance_valid(game_over_instance): game_over_instance.hide()
-		# Game.gd will hide HUD and MainGameUI itself
 		
-		if main_menu_instance.has_method("show_menu"): # If MainMenu.gd has a specific show method
+		if main_menu_instance.has_method("show_menu"):
 			main_menu_instance.show_menu()
 		else:
 			main_menu_instance.show()
@@ -100,12 +102,11 @@ func show_loot_screen(loot_options: Array):
 	_ensure_scenes_instantiated()
 	if is_instance_valid(loot_screen_instance):
 		if loot_screen_instance.has_method("display_loot_options"):
-			loot_screen_instance.display_loot_options(loot_options) # Assumes this method also calls .show()
-			# If not, call loot_screen_instance.show() here
+			loot_screen_instance.display_loot_options(loot_options)
 			print("SceneUIManager: Showing LootScreen with options.")
 		else:
 			printerr("SceneUIManager: LootScreen missing display_loot_options method.")
-			loot_screen_instance.show() # Basic show as fallback
+			loot_screen_instance.show()
 	else:
 		printerr("SceneUIManager: LootScreen instance not valid to show.")
 
@@ -119,11 +120,11 @@ func show_game_over_screen(final_score: int, round_reached: int):
 	_ensure_scenes_instantiated()
 	if is_instance_valid(game_over_instance):
 		if game_over_instance.has_method("show_screen"):
-			game_over_instance.show_screen(final_score, round_reached) # Assumes this method also calls .show()
+			game_over_instance.show_screen(final_score, round_reached)
 			print("SceneUIManager: Showing GameOverScreen.")
 		else:
 			printerr("SceneUIManager: GameOverScreen missing show_screen method.")
-			game_over_instance.show() # Basic show
+			game_over_instance.show()
 	else:
 		printerr("SceneUIManager: GameOverScreen instance not valid to show.")
 
@@ -140,7 +141,7 @@ func hide_game_over_screen():
 func _on_main_menu_start_game_internal():
 	print("SceneUIManager: MainMenu Start Game pressed. Emitting signal.")
 	emit_signal("main_menu_start_game_pressed")
-	hide_main_menu() # Manager can decide to hide it
+	hide_main_menu()
 
 func _on_loot_selected_internal(chosen_glyph: GlyphData):
 	print("SceneUIManager: Loot selected. Emitting signal.")
@@ -151,6 +152,12 @@ func _on_loot_skipped_internal():
 	print("SceneUIManager: Loot skipped. Emitting signal.")
 	emit_signal("loot_screen_skipped")
 	hide_loot_screen()
+
+# NEW internal handler for LootScreen's inventory request
+func _on_loot_screen_inventory_requested_internal():
+	print("SceneUIManager: LootScreen requested inventory. Emitting 'loot_screen_inventory_requested' signal.")
+	emit_signal("loot_screen_inventory_requested")
+	# Note: SceneUIManager does NOT hide the loot screen here. Game.gd manages HUD inventory visibility.
 
 func _on_game_over_retry_internal():
 	print("SceneUIManager: GameOver Retry pressed. Emitting signal.")
