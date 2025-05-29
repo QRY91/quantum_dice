@@ -19,14 +19,7 @@ enum GameRollState {
 }
 var current_game_roll_state: GameRollState = GameRollState.MENU
 
-# --- Game Progression Phase Enum ---
-# enum GamePhase { # <--- REMOVE THIS BLOCK
-# 	PRE_BOSS,
-# 	FIRST_BOSS_ENCOUNTER,
-# 	MID_GAME_CYCLE,
-# 	MID_GAME_BOSS_ENCOUNTER
-# } # <--- REMOVE THIS BLOCK
-var current_game_phase_local: int = ProgressionManager.GamePhase.PRE_BOSS # <--- CHANGE TYPE AND INITIALIZATION
+var current_game_phase_local: int = GlobalEnums.GamePhase.PRE_BOSS
 
 
 # --- Success Tier Enum ---
@@ -259,7 +252,7 @@ func _start_new_round_setup():
 	ScoreManager.reset_for_new_round()
 	player_current_rolls_this_round = 0
 	roll_history.clear(); synergies_fired_this_round.clear();
-	print("Game: Round %d setup. Target:%d, MaxRolls:%d, Phase:%s" % [current_round_number_local, target_score_for_current_round, max_rolls_for_current_round, ProgressionManager.GamePhase.keys()[current_game_phase_local]])
+	print("Game: Round %d setup. Target:%d, MaxRolls:%d, Phase:%s" % [current_round_number_local, target_score_for_current_round, max_rolls_for_current_round, GlobalEnums.GamePhase.keys()[current_game_phase_local]])
 	if is_instance_valid(hud_instance): 
 		if hud_instance.has_method("reset_round_visuals"): hud_instance.reset_round_visuals()
 		if hud_instance.has_method("activate_track_slots"): hud_instance.activate_track_slots(max_rolls_for_current_round)
