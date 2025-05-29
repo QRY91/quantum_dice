@@ -6,16 +6,8 @@ signal game_phase_changed(new_phase: int)
 signal cornerstone_slot_unlocked(slot_index_zero_based: int, is_unlocked: bool)
 signal boss_indicator_update(show: bool, message: String)
 
-# DUPLICATE GamePhase Enum here for now
-enum GamePhase {
-	PRE_BOSS,
-	FIRST_BOSS_ENCOUNTER,
-	MID_GAME_CYCLE,
-	MID_GAME_BOSS_ENCOUNTER
-}
-
 var current_round_number: int = 0
-var current_game_phase: int = GamePhase.PRE_BOSS # Use local enum
+var current_game_phase: int = GlobalEnums.GamePhase.PRE_BOSS # Use GlobalEnum
 var is_first_15_roll_round_reached: bool = false
 var is_first_boss_defeated: bool = false
 var is_cornerstone_slot_3_active: bool = false
@@ -35,14 +27,14 @@ func initialize_new_run():
 	is_cornerstone_slot_3_active = false
 	emit_signal("cornerstone_slot_unlocked", 2, false)
 	mid_game_cycle_round_counter = 0
-	set_game_phase(GamePhase.PRE_BOSS) # Use local enum
+	set_game_phase(GlobalEnums.GamePhase.PRE_BOSS) # Use GlobalEnum
 
-func set_game_phase(new_phase: int): # new_phase is an int from the local GamePhase enum
+func set_game_phase(new_phase: int): # new_phase is an int from the GlobalEnums.GamePhase enum
 	if current_game_phase == new_phase:
 		return
 	current_game_phase = new_phase
 	emit_signal("game_phase_changed", current_game_phase) # Emit the int value
-	print("ProgressionManager: Game phase changed to ", GamePhase.keys()[current_game_phase])
+	print("ProgressionManager: Game phase changed to ", GlobalEnums.GamePhase.keys()[current_game_phase])
 
 
 func get_next_round_setup() -> Dictionary:
@@ -68,24 +60,24 @@ func get_next_round_setup() -> Dictionary:
 
 	if not is_first_boss_defeated:
 		if is_first_15_roll_round_reached: 
-			phase_for_this_round_start = GamePhase.FIRST_BOSS_ENCOUNTER # Use local enum
+			phase_for_this_round_start = GlobalEnums.GamePhase.FIRST_BOSS_ENCOUNTER # Use GlobalEnum
 			round_config.is_boss_round = true
 		else:
-			phase_for_this_round_start = GamePhase.PRE_BOSS # Use local enum
+			phase_for_this_round_start = GlobalEnums.GamePhase.PRE_BOSS # Use GlobalEnum
 	else: 
-		if current_game_phase == GamePhase.MID_GAME_BOSS_ENCOUNTER: # If previous round was a boss
+		if current_game_phase == GlobalEnums.GamePhase.MID_GAME_BOSS_ENCOUNTER: # If previous round was a boss
 			mid_game_cycle_round_counter = 1 # Start new cycle
-			phase_for_this_round_start = GamePhase.MID_GAME_CYCLE
-		elif current_game_phase == GamePhase.MID_GAME_CYCLE:
+			phase_for_this_round_start = GlobalEnums.GamePhase.MID_GAME_CYCLE
+		elif current_game_phase == GlobalEnums.GamePhase.MID_GAME_CYCLE:
 			mid_game_cycle_round_counter += 1
 			if mid_game_cycle_round_counter == 3:
-				phase_for_this_round_start = GamePhase.MID_GAME_BOSS_ENCOUNTER
+				phase_for_this_round_start = GlobalEnums.GamePhase.MID_GAME_BOSS_ENCOUNTER # Use GlobalEnum
 				round_config.is_boss_round = true
 			else: # Still in MID_GAME_CYCLE (1 or 2)
-				phase_for_this_round_start = GamePhase.MID_GAME_CYCLE
-		elif current_game_phase == GamePhase.PRE_BOSS: # Should not happen if is_first_boss_defeated is true, but for safety
+				phase_for_this_round_start = GlobalEnums.GamePhase.MID_GAME_CYCLE
+		elif current_game_phase == GlobalEnums.GamePhase.PRE_BOSS: # Should not happen if is_first_boss_defeated is true, but for safety
 			mid_game_cycle_round_counter = 1
-			phase_for_this_round_start = GamePhase.MID_GAME_CYCLE
+			phase_for_this_round_start = GlobalEnums.GamePhase.MID_GAME_CYCLE
 
 
 	set_game_phase(phase_for_this_round_start)
@@ -96,18 +88,18 @@ func get_next_round_setup() -> Dictionary:
 	var show_indicator: bool = false
 
 	if round_config.is_boss_round:
-		if current_game_phase == GamePhase.FIRST_BOSS_ENCOUNTER:
+		if current_game_phase == GlobalEnums.GamePhase.FIRST_BOSS_ENCOUNTER: # Use GlobalEnum
 			round_config.target_score = int(float(round_config.target_score) * FIRST_BOSS_SCORE_MULTIPLIER_PM)
 			PlayerNotificationSystem.display_message("BOSS ENCOUNTER ROUND! (First)")
-		elif current_game_phase == GamePhase.MID_GAME_BOSS_ENCOUNTER:
+		elif current_game_phase == GlobalEnums.GamePhase.MID_GAME_BOSS_ENCOUNTER: # Use GlobalEnum
 			round_config.target_score = int(float(round_config.target_score) * MID_GAME_BOSS_SCORE_MULTIPLIER_PM)
 			PlayerNotificationSystem.display_message("BOSS ENCOUNTER ROUND (Mid-Game)!")
 	else: 
-		if current_game_phase == GamePhase.PRE_BOSS:
+		if current_game_phase == GlobalEnums.GamePhase.PRE_BOSS: # Use GlobalEnum
 			if round_config.max_rolls == MAX_ROLLS_CAP_PM and not is_first_15_roll_round_reached:
 				show_indicator = true
 				boss_indicator_msg = "Win this 15-roll round to face the First Boss!"
-		elif current_game_phase == GamePhase.MID_GAME_CYCLE:
+		elif current_game_phase == GlobalEnums.GamePhase.MID_GAME_CYCLE: # Use GlobalEnum
 			if mid_game_cycle_round_counter == 2: 
 				show_indicator = true
 				boss_indicator_msg = "Next Round: Mid-Game Boss!"
@@ -116,7 +108,7 @@ func get_next_round_setup() -> Dictionary:
 	
 	print("ProgressionManager: Round %d Setup: Target:%d, Rolls:%d, Phase:%s, MidCycle:%d, IsBoss:%s" % [
 		current_round_number, round_config.target_score, round_config.max_rolls, 
-		GamePhase.keys()[current_game_phase], mid_game_cycle_round_counter if is_first_boss_defeated else 0, str(round_config.is_boss_round)
+		GlobalEnums.GamePhase.keys()[current_game_phase], mid_game_cycle_round_counter if is_first_boss_defeated else 0, str(round_config.is_boss_round)
 	])
 	return round_config
 
@@ -131,7 +123,7 @@ func process_round_win(p_current_round_number: int, p_max_rolls_this_round: int,
 		PlayerNotificationSystem.display_message("First 15-roll round completed!")
 		print("ProgressionManager: is_first_15_roll_round_reached set to true.")
 
-	if previous_phase_before_win_logic == GamePhase.FIRST_BOSS_ENCOUNTER:
+	if previous_phase_before_win_logic == GlobalEnums.GamePhase.FIRST_BOSS_ENCOUNTER: # Use GlobalEnum
 		var boss_condition_met = false
 		if p_rolls_used == MAX_ROLLS_CAP_PM:
 			if not p_roll_history.is_empty():
@@ -145,15 +137,15 @@ func process_round_win(p_current_round_number: int, p_max_rolls_this_round: int,
 			PlayerNotificationSystem.display_message("FIRST BOSS DEFEATED! Cornerstone Slot 3 Activated!")
 			emit_signal("cornerstone_slot_unlocked", 2, true)
 			print("ProgressionManager: First Boss defeated, Cornerstone 3 active.")
-			set_game_phase(GamePhase.MID_GAME_CYCLE) 
+			set_game_phase(GlobalEnums.GamePhase.MID_GAME_CYCLE) # Use GlobalEnum
 			mid_game_cycle_round_counter = 0 
 		else:
 			PlayerNotificationSystem.display_message("Boss challenge condition missed, but round cleared!")
 
-	elif previous_phase_before_win_logic == GamePhase.MID_GAME_BOSS_ENCOUNTER:
+	elif previous_phase_before_win_logic == GlobalEnums.GamePhase.MID_GAME_BOSS_ENCOUNTER: # Use GlobalEnum
 		PlayerNotificationSystem.display_message("Mid-Game Boss Defeated! (Placeholder)")
 		print("ProgressionManager: Mid-Game Boss defeated.")
-		set_game_phase(GamePhase.MID_GAME_CYCLE)
+		set_game_phase(GlobalEnums.GamePhase.MID_GAME_CYCLE) # Use GlobalEnum
 		mid_game_cycle_round_counter = 0
 	
 	# If it was MID_GAME_CYCLE and won, mid_game_cycle_round_counter is handled by get_next_round_setup

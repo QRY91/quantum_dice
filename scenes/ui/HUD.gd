@@ -25,6 +25,10 @@ var _fanfare_active_tweens: int = 0
 
 var current_target_score: int = 0 # Add a variable to store the current target
 
+# No longer @onready, directly use the autoload name
+# @onready var palette_manager = get_node_or_null("/root/PaletteManager")
+# We will use PaletteManager directly where needed.
+
 const SCORE_POPUP_DURATION: float = 1.2
 const SCORE_POPUP_TRAVEL_Y: float = -70.0
 
@@ -62,9 +66,22 @@ func _ready():
 			mat.shader = loaded_shader
 			score_label.material = mat
 			# Initialize shader params if created dynamically
-			score_label.material.set_shader_parameter("score_ratio", 0.0) # Assumes 'score_ratio' exists
+			# score_label.material.set_shader_parameter("score_ratio", 0.0) # score_ratio is set in update_score_target_display
 		else:
 			printerr("HUD _ready: FAILED to load 'res://score_display.gdshader'. Shader effects will not work.")
+
+	# Connect to PaletteManager and apply initial palette
+	if PaletteManager: # Check if the autoload exists
+		PaletteManager.active_palette_updated.connect(_on_palette_changed)
+		# Apply initial palette colors if material exists
+		if is_instance_valid(score_label) and score_label.material:
+			_on_palette_changed(PaletteManager.get_current_palette_colors())
+		elif is_instance_valid(score_label) and not score_label.material:
+			printerr("HUD _ready: ScoreLabel material not ready for initial palette application. Should be created above.")
+		else: # score_label itself might not be valid
+			pass # Error already printed if material wasn't created due to no score_label
+	else:
+		printerr("HUD _ready: PaletteManager not found. Make sure it's an autoload. Shader colors will not be dynamic.")
 	
 	print("HUD _ready: End.")
 
@@ -89,6 +106,11 @@ func update_score_target_display(p_score: int, p_target: int):
 				if current_target_score > 0:
 					score_ratio = clampf(float(p_score) / float(current_target_score), 0.0, 1.0)
 				mat.set_shader_parameter("score_ratio", score_ratio)
+				# Ensure palette colors are applied if they haven't been due to timing
+				# This is a bit of a safeguard, ideally _on_palette_changed handles it.
+				if not mat.get_shader_parameter("tier_base_color"): # Check if a color is missing
+					if PaletteManager: # Check if the autoload exists
+						_on_palette_changed(PaletteManager.get_current_palette_colors())
 
 	if is_instance_valid(target_label): target_label.text = "Target " + str(p_target)
 
@@ -293,6 +315,32 @@ func _on_individual_fanfare_tween_finished(tween_name: String):
 		_fanfare_active_tweens -= 1
 	if _fanfare_active_tweens == 0:
 		emit_signal("fanfare_animation_finished")
+
+func _on_palette_changed(palette_colors: Dictionary) -> void:
+	if not is_instance_valid(score_label) or not score_label.material or not score_label.material.shader:
+		# print("HUD: ScoreLabel material or shader not found, cannot apply palette colors.")
+		# This can happen if _ready order is such that material isn't set when first signal arrives
+		return
+
+	var main_color = palette_colors.get("main", Color.WHITE)
+	var accent_color = palette_colors.get("accent", Color.RED)
+
+	var mat: ShaderMaterial = score_label.material
+
+	mat.set_shader_parameter("tier_base_color", main_color)
+	
+	var bronze_color = main_color.lerp(Color(0.5,0.5,0.5,1.0), 0.3) 
+	mat.set_shader_parameter("tier_bronze_color", bronze_color)
+
+	var silver_color = main_color.lightened(0.1)
+	mat.set_shader_parameter("tier_silver_color", silver_color)
+
+	mat.set_shader_parameter("tier_gold_color", accent_color)
+
+	var platinum_color = accent_color.lightened(0.2).lerp(Color.WHITE, 0.3)
+	mat.set_shader_parameter("tier_platinum_color", platinum_color)
+	
+	# print("HUD: Updated ScoreLabel shader colors from palette.")
 
 func _create_score_popup_label(text_to_display: String, start_global_pos: Vector2, color: Color = Color.WHITE, delay: float = 0.0) -> Tween:
 	var popup_label = Label.new()

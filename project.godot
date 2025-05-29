@@ -25,6 +25,7 @@ BoonManager="*res://scripts/managers/BoonManager.gd"
 PlayerDiceManager="*res://scripts/managers/PlayerDiceManager.gd"
 SceneUIManager="*res://scripts/managers/SceneUIManager.gd"
 PaletteManager="*res://scripts/managers/PaletteManager.gd"
+GlobalEnums="*res://scripts/autoloads/GlobalEnums.gd"
 
 [display]
 
