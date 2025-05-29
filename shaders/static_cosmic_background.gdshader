@@ -2,8 +2,8 @@ shader_type canvas_item;
 
 uniform vec4 background_color : source_color;
 uniform vec4 foreground_color : source_color;
-uniform float pulse_intensity : hint_range(0.0, 0.5) = 0.1; // How much brighter it gets
-uniform float pulse_speed : hint_range(0.1, 5.0) = 0.5;   // How fast it pulses
+uniform float pulse_intensity : hint_range(0.0, 1.0) = 0.8;
+uniform float pulse_speed : hint_range(0.1, 5.0) = 0.8;
 
 // 8x8 Bayer matrix for larger pattern
 const mat4 bayer8x8_1 = mat4(
@@ -37,44 +37,52 @@ float cloud_noise(vec2 uv, float time_offset) {
 	return noise;
 }
 
+// Get pulse value with phase offset
+float get_pulse(float speed, float phase_offset) {
+	return (sin(TIME * speed + phase_offset) * 0.5 + 0.5) * pulse_intensity;
+}
+
 void fragment() {
 	// Base scaling for our 640x640 context
 	float pixel_scale = 4.0; // Minimum design pixel
 	vec2 scaled_pos = FRAGCOORD.xy / pixel_scale;
 	
-	// Multiple overlapping dither patterns with different scales and offsets
+	// First dither pattern with its own pulse
 	float pattern1 = get_dither_value(
 		scaled_pos + vec2(TIME * 0.2, TIME * 0.1), 
 		bayer8x8_1, 
 		2.0 // 8x8 effective pattern
 	);
+	float pulse1 = get_pulse(pulse_speed * 0.7, 0.0); // Slower pulse
+	pattern1 *= (0.15 + pulse1 * 0.3);
 	
+	// Second dither pattern with offset pulse
 	float pattern2 = get_dither_value(
 		scaled_pos + vec2(-TIME * 0.15, TIME * 0.25), 
 		bayer8x8_2, 
 		3.0 // 12x12 effective pattern
 	);
+	float pulse2 = get_pulse(pulse_speed * 1.3, 2.1); // Faster pulse, phase shifted
+	pattern2 *= (0.12 + pulse2 * 0.25);
 	
-	// Animated cloud-like noise patterns
+	// First cloud pattern with slow pulse
 	float cloud1 = cloud_noise(UV * 4.0, TIME * 0.1);
+	float pulse3 = get_pulse(pulse_speed * 0.5, 4.2); // Very slow pulse, different phase
+	cloud1 *= (0.1 + pulse3 * 0.2);
+	
+	// Second cloud pattern with medium pulse
 	float cloud2 = cloud_noise(UV * 2.0 + vec2(TIME * 0.05), TIME * -0.15);
+	float pulse4 = get_pulse(pulse_speed * 0.9, 1.5); // Medium speed pulse, different phase
+	cloud2 *= (0.08 + pulse4 * 0.15);
 	
-	// Combine patterns with clouds
-	float combined_pattern = mix(pattern1, pattern2, 0.5);
-	combined_pattern = mix(combined_pattern, cloud1, 0.3);
-	combined_pattern = mix(combined_pattern, cloud2, 0.2);
-	
-	// Very subtle pulse
-	float pulse = (sin(TIME * pulse_speed) * 0.5 + 0.5) * pulse_intensity * 0.3;
-	
-	// Use the combined pattern for intensity
-	float final_intensity = combined_pattern * (0.15 + pulse);
+	// Combine all patterns with their individual pulses
+	float combined_pattern = pattern1 * 0.4 + pattern2 * 0.3 + cloud1 * 0.2 + cloud2 * 0.1;
 	
 	// Mix between background and foreground colors based on pattern
 	vec4 output_color = mix(
 		background_color,
 		foreground_color,
-		final_intensity * 0.15 // Reduced mix factor for subtlety
+		combined_pattern * 0.15 // Keep overall subtle mix
 	);
 	
 	COLOR = output_color;

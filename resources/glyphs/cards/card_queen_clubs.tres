@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="GlyphData" load_steps=3 format=3 uid="uid://cqe0ruhfpfukj"]
 
 [ext_resource type="Script" path="res://scripts/resources/GlyphData.gd" id="1_lf5j4"]
-[ext_resource type="Texture2D" uid="uid://duu31dhyag45u" path="res://assets/sprites/cards/large/card_clubs_Q.png" id="2_xbujg"]
+[ext_resource type="Texture2D" uid="uid://bwbx2o6jd2cw3" path="res://resources/atlas/glyph_card_queen_c.tres" id="2_pmpd2"]
 
 [resource]
 script = ExtResource("1_lf5j4")
@@ -9,5 +9,10 @@ id = "card_qc"
 display_name = "Queen C"
 type = "card"
 value = 12
-texture = ExtResource("2_xbujg")
+texture = ExtResource("2_pmpd2")
 suit = "clubs"
+is_superposition = false
+superposition_outcomes = Array[ExtResource("1_lf5j4")]([])
+is_entangled = false
+entanglement_id = &""
+entangled_effect_type = 0

@@ -1,8 +1,24 @@
-[gd_scene load_steps=4 format=3 uid="uid://bp068rosnok0a"]
+[gd_scene load_steps=7 format=3 uid="uid://bp068rosnok0a"]
 
 [ext_resource type="Theme" uid="uid://s6n6onv1nmd5" path="res://resources/themes/quantum_dice_theme.tres" id="1_60h5o"]
 [ext_resource type="Script" path="res://scenes/ui/MainMenu.gd" id="1_xynqt"]
 [ext_resource type="FontFile" uid="uid://hkgptpdyk0po" path="res://assets/fonts/Kenney Mini Square.ttf" id="2_s47cy"]
+[ext_resource type="Shader" path="res://shaders/menu_fractal_tunnel.gdshader" id="3_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_tunnel"]
+shader = ExtResource("3_shader")
+background_color = Color(0.1, 0.08, 0.12, 1)
+foreground_color = Color(0.93, 0.87, 0.8, 1)
+speed = 0.3
+rotation_speed = 0.15
+square_count = 8.0
+sparsity = 0.4
+
+[sub_resource type="LabelSettings" id="LabelSettings_title"]
+font = ExtResource("2_s47cy")
+font_size = 80
+outline_size = 4
+outline_color = Color(0.1, 0.08, 0.12, 1)
 
 [node name="MainMenuScreen" type="Control"]
 z_index = 20
@@ -14,22 +30,22 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_xynqt")
 
-[node name="ColorRect" type="ColorRect" parent="."]
+[node name="BackgroundRect" type="ColorRect" parent="."]
+texture_filter = 0
+material = SubResource("ShaderMaterial_tunnel")
 layout_mode = 0
 offset_right = 640.0
 offset_bottom = 640.0
-color = Color(0, 0, 0, 1)
 metadata/_edit_lock_ = true
 
-[node name="Label" type="Label" parent="."]
-custom_minimum_size = Vector2(640, 640)
+[node name="TitleLabel" type="Label" parent="."]
+custom_minimum_size = Vector2(640, 200)
 layout_mode = 0
 offset_right = 640.0
-offset_bottom = 641.0
+offset_bottom = 200.0
 theme = ExtResource("1_60h5o")
-theme_override_fonts/font = ExtResource("2_s47cy")
-theme_override_font_sizes/font_size = 80
 text = "Quantum Dice"
+label_settings = SubResource("LabelSettings_title")
 horizontal_alignment = 1
 vertical_alignment = 1
 metadata/_edit_lock_ = true
@@ -43,8 +59,7 @@ offset_right = 400.0
 offset_bottom = 500.0
 theme = ExtResource("1_60h5o")
 theme_override_fonts/font = ExtResource("2_s47cy")
-text = "start game
-"
+text = "start game"
 metadata/_edit_lock_ = true
 
 [node name="HighScoreLabel" type="Label" parent="."]
@@ -53,3 +68,7 @@ offset_left = 251.0
 offset_top = 372.0
 offset_right = 393.0
 offset_bottom = 395.0
+theme = ExtResource("1_60h5o")
+theme_override_fonts/font = ExtResource("2_s47cy")
+text = "High Score: 0"
+horizontal_alignment = 1
