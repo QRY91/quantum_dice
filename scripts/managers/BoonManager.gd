@@ -73,8 +73,8 @@ func check_and_activate_rune_phrases(current_runes_in_history_ids: Array[String]
 				
 				newly_activated_boon_messages.append({
 					"name": phrase_data.display_name,
-					"description": phrase_data.boon_description
-					# "id": phrase_id_string_name # Game.gd doesn't seem to need the ID back here currently
+					"description": phrase_data.boon_description,
+					"id_string_name": phrase_id_string_name # Ensure Game.gd can get the ID
 				})
 				emit_signal("boon_activated", phrase_id_string_name, phrase_data.display_name, phrase_data.boon_description)
 	

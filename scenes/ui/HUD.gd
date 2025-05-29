@@ -409,3 +409,10 @@ func show_boss_incoming_indicator(show: bool, message: String = "Boss Incoming!"
 	else:
 		boss_indicator_label.visible = false
 
+# Helper for Game.gd to access track slot nodes for synergy visuals
+func get_track_slot_node_by_index(index: int) -> Node:
+	if is_instance_valid(track_manager) and track_manager.has_method("get_track_slot_by_index"):
+		return track_manager.get_track_slot_by_index(index)
+	printerr("HUD: Cannot get_track_slot_node_by_index. TrackManager is invalid or missing method.")
+	return null
+

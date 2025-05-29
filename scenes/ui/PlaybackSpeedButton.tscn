@@ -1,7 +1,19 @@
-[gd_scene load_steps=3 format=3 uid="uid://31yi0q5qj6vs"]
+[gd_scene load_steps=6 format=3 uid="uid://31yi0q5qj6vs"]
 
 [ext_resource type="Script" path="res://scenes/ui/PlaybackSpeedButton.gd" id="1_xuwya"]
+[ext_resource type="Shader" path="res://shaders/palette_swap.gdshader" id="2_4jns2"]
 [ext_resource type="Theme" uid="uid://s6n6onv1nmd5" path="res://resources/themes/quantum_dice_theme.tres" id="2_8yhms"]
+[ext_resource type="Script" path="res://resources/palettes/PalettizedItem.gd" id="4_q1f01"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vp3n4"]
+shader = ExtResource("2_4jns2")
+shader_parameter/palette_main_color = Color(0.93, 0.87, 0.8, 1)
+shader_parameter/palette_background_color = Color(0.1, 0.08, 0.12, 1)
+shader_parameter/palette_accent_color = Color(0.9, 0.25, 0.2, 1)
+shader_parameter/source_placeholder_bg = Color(0, 0, 0, 1)
+shader_parameter/source_placeholder_main = Color(1, 1, 1, 1)
+shader_parameter/source_placeholder_accent = Color(1, 0, 0, 1)
+shader_parameter/color_match_tolerance = 0.05
 
 [node name="PlaybackSpeedButton" type="TextureButton"]
 texture_filter = 1
@@ -18,6 +30,7 @@ script = ExtResource("1_xuwya")
 
 [node name="Label" type="Label" parent="."]
 texture_filter = 1
+material = SubResource("ShaderMaterial_vp3n4")
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 0
 offset_right = 40.0
@@ -27,3 +40,4 @@ theme_override_font_sizes/font_size = 20
 text = "1.0x"
 horizontal_alignment = 1
 vertical_alignment = 1
+script = ExtResource("4_q1f01")

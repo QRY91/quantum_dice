@@ -32,6 +32,16 @@ var is_cornerstone_logic_unlocked: bool = false
 # Optional: Add an AnimationPlayer node to TrackSlot.tscn for more complex animations
 # @onready var animation_player: AnimationPlayer = $AnimationPlayer
 
+var _idle_float_tween: Tween = null
+const IDLE_FLOAT_AMOUNT: float = 3.0 # Pixels to float up/down
+const IDLE_FLOAT_DURATION: float = 1.5 # Seconds for one full cycle (up and down)
+
+const SYNERGY_GLOW_SHADER: Shader = preload("res://shaders/synergy_glow.gdshader")
+var _original_slot_background_material: Material = null
+var _synergy_glow_active: bool = false
+
+# REMOVED: var PaletteManager: Node = null
+
 func _set_current_state(new_state: SlotState):
 	if slot_index == 2:
 		print("TrackSlot[2] (Path: %s): _set_current_state ENTERED. current_state: %s, new_state: %s" % [get_path(), SlotState.keys()[current_state] if current_state != null else "NULL", SlotState.keys()[new_state]])
@@ -45,6 +55,12 @@ func _set_current_state(new_state: SlotState):
 		else:
 			print("TrackSlot[2] (Path: %s): _set_current_state - state changed from %s to %s. Calling _update_visuals." % [get_path(), SlotState.keys()[old_state_enum_val] if old_state_enum_val != null else "NULL", SlotState.keys()[current_state]])
 	
+	# Stop/Start idle animation based on whether a glyph is visible
+	if is_instance_valid(glyph_display) and glyph_display.visible:
+		_start_idle_float_animation()
+	else:
+		_stop_idle_float_animation()
+	
 	_update_visuals() # Always update visuals
 
 func _ready():
@@ -52,6 +68,20 @@ func _ready():
 	print("TrackSlot _ready: Name: %s, Path: %s, current slot_idx_var: %d" % [name, get_path(), slot_index])
 	_set_current_state(SlotState.INACTIVE) # Set initial state
 
+	_stop_idle_float_animation() # Ensure it's stopped initially
+	
+	if is_instance_valid(slot_background):
+		_original_slot_background_material = slot_background.material
+	else:
+		printerr("TrackSlot '%s': SlotBackground node not found in _ready." % name)
+
+	# Connect to PaletteManager for glyph color
+	if PaletteManager: # Directly check for the Autoload
+		PaletteManager.active_palette_updated.connect(_on_palette_changed_for_glyph)
+		# Apply initial palette to glyph if one is somehow already there (unlikely but safe)
+		_on_palette_changed_for_glyph(PaletteManager.get_current_palette_colors())
+	else:
+		printerr("TrackSlot '%s': Autoload PaletteManager not found. Glyph color will not be dynamic." % name)
 
 func initialize(p_index: int, p_is_cornerstone: bool = false, p_cs_effect_id: StringName = ""):
 	slot_index = p_index
@@ -65,7 +95,10 @@ func initialize(p_index: int, p_is_cornerstone: bool = false, p_cs_effect_id: St
 		_set_current_state(SlotState.CORNERSTONE_INACTIVE) # Default for a cornerstone before logic unlock/activation
 	else:
 		_set_current_state(SlotState.INACTIVE) # Default for non-cornerstone, will be EMPTY upon activation
-
+	
+	# Ensure idle animation is stopped as glyph_display is not yet visible or populated.
+	_stop_idle_float_animation()
+	deactivate_synergy_visuals() # Ensure synergy visuals are off on init
 
 func set_as_cornerstone(cs_flag: bool, cs_id: StringName = ""): # Called by TrackManager during its setup
 	# This might be called before activate_slot
@@ -89,6 +122,7 @@ func set_as_cornerstone(cs_flag: bool, cs_id: StringName = ""): # Called by Trac
 
 func activate_slot(): # Called by TrackManager when round starts/slots become available
 	# print("TrackSlot[%d Path: %s]: activate_slot called." % [slot_index, get_path()])
+	deactivate_synergy_visuals() # Ensure visuals are reset when slot (re)activates for a round
 	if is_cornerstone:
 		if is_cornerstone_logic_unlocked:
 			_set_current_state(SlotState.CORNERSTONE_ACTIVE_EMPTY)
@@ -100,6 +134,8 @@ func activate_slot(): # Called by TrackManager when round starts/slots become av
 	else:
 		_set_current_state(SlotState.EMPTY)
 	# _update_visuals() is called by _set_current_state
+	_stop_idle_float_animation() # Explicitly stop on deactivate
+	deactivate_synergy_visuals() # Deactivate synergy visuals when slot deactivates
 
 func deactivate_slot(): # Called by TrackManager when round ends
 	# print("TrackSlot[%d Path: %s]: deactivate_slot called." % [slot_index, get_path()])
@@ -108,6 +144,8 @@ func deactivate_slot(): # Called by TrackManager when round ends
 		clear_glyph() 
 	# Then explicitly set to INACTIVE
 	_set_current_state(SlotState.INACTIVE)
+	_stop_idle_float_animation() # Explicitly stop on deactivate
+	deactivate_synergy_visuals() # Deactivate synergy visuals when slot deactivates
 
 
 func unlock_cornerstone_logic(unlocked: bool): # Called by TrackManager via Game.gd
@@ -183,6 +221,10 @@ func place_glyph(glyph: GlyphData):
 
 	emit_signal("glyph_landed_on_slot", slot_index, occupied_glyph_data)
 	
+	if is_instance_valid(glyph_display) and glyph_display.visible:
+		_start_idle_float_animation()
+	else:
+		_stop_idle_float_animation()
 
 func clear_glyph():
 	# print("TrackSlot[%d Path: %s]: clear_glyph called." % [slot_index, get_path()])
@@ -202,6 +244,7 @@ func clear_glyph():
 		new_empty_state = SlotState.EMPTY
 		
 	_set_current_state(new_empty_state)
+	_stop_idle_float_animation() # Stop animation when glyph is cleared
 
 
 func _update_visuals():
@@ -214,6 +257,10 @@ func _update_visuals():
 			print("TrackSlot[2] (Path: %s): _update_visuals - EXITING due to invalid nodes." % get_path())
 		return
 
+	# Apply current palette's main color to the glyph if visible
+	if PaletteManager and is_instance_valid(glyph_display): # Directly check for Autoload
+		glyph_display.modulate = PaletteManager.get_current_palette_colors().get("main", Color.WHITE)
+
 	var show_glyph: bool = false
 	if occupied_glyph_data != null:
 		if current_state in [SlotState.OCCUPIED, SlotState.CORNERSTONE_ACTIVE_OCCUPIED, SlotState.CORNERSTONE_INACTIVE]:
@@ -221,6 +268,11 @@ func _update_visuals():
 	
 	if is_instance_valid(glyph_display): # Check again before using
 		glyph_display.visible = show_glyph
+		if show_glyph:
+			if _idle_float_tween == null or not _idle_float_tween.is_valid(): # Start if not already running and glyph is visible
+				_start_idle_float_animation()
+		else:
+			_stop_idle_float_animation() # Stop if glyph is not shown
 	elif slot_index == 2:
 		print("TrackSlot[2] (Path: %s): _update_visuals - glyph_display became invalid before setting visibility." % get_path())
 
@@ -293,3 +345,73 @@ func play_entanglement_effect_animation():
 	# else:
 	# 	# Fallback to tween or print error
 	# 	printerr("TrackSlot[%d]: Entanglement AnimationPlayer or 'entangled_pulse' animation not found." % slot_index)
+
+# --- Idle Float Animation ---
+func _start_idle_float_animation():
+	if not is_instance_valid(glyph_display) or not glyph_display.visible:
+		_stop_idle_float_animation() # Ensure it's stopped if glyph isn't visible
+		return
+
+	if _idle_float_tween != null and _idle_float_tween.is_valid():
+		# Already running or being set up, no need to restart unless properties change
+		# If you want to ensure it restarts from base position, kill and recreate:
+		# _idle_float_tween.kill() 
+		# _idle_float_tween = null
+		return
+
+	_idle_float_tween = create_tween().set_loops().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	
+	# Ensure glyph_display is at its base position before starting
+	glyph_display.position.y = 0 
+	
+	var half_duration = IDLE_FLOAT_DURATION / 2.0
+	_idle_float_tween.tween_property(glyph_display, "position:y", -IDLE_FLOAT_AMOUNT, half_duration)
+	_idle_float_tween.tween_property(glyph_display, "position:y", IDLE_FLOAT_AMOUNT, half_duration)
+	_idle_float_tween.tween_property(glyph_display, "position:y", 0.0, half_duration) # Back to center
+
+func _stop_idle_float_animation():
+	if _idle_float_tween != null and _idle_float_tween.is_valid():
+		_idle_float_tween.kill() # Stop the tween
+	_idle_float_tween = null
+	if is_instance_valid(glyph_display): # Reset position when stopping
+		glyph_display.position = Vector2.ZERO
+
+
+func _exit_tree():
+	_stop_idle_float_animation() # Clean up tween when node exits tree
+	# Disconnect from PaletteManager
+	if PaletteManager and PaletteManager.is_connected("active_palette_updated", Callable(self, "_on_palette_changed_for_glyph")): # Directly check for Autoload
+		PaletteManager.active_palette_updated.disconnect(_on_palette_changed_for_glyph)
+
+# --- Synergy Visuals ---
+func activate_synergy_visuals(glow_color: Color = Color(1.0, 0.8, 0.0, 0.7), strength: float = 0.6, speed: float = 1.5):
+	if not is_instance_valid(slot_background) or not SYNERGY_GLOW_SHADER:
+		printerr("TrackSlot '%s': Cannot activate synergy visuals. SlotBackground or Shader missing." % name)
+		return
+	
+	print("TrackSlot '%s': Activating synergy visuals." % name)
+	var shader_material = ShaderMaterial.new()
+	shader_material.shader = SYNERGY_GLOW_SHADER
+	shader_material.set_shader_parameter("glow_color", glow_color)
+	shader_material.set_shader_parameter("glow_strength", strength)
+	shader_material.set_shader_parameter("pulse_speed", speed)
+	slot_background.material = shader_material
+	_synergy_glow_active = true
+
+func deactivate_synergy_visuals():
+	# print("TrackSlot '%s': Deactivating synergy visuals." % name)
+	if is_instance_valid(slot_background):
+		slot_background.material = _original_slot_background_material
+	_synergy_glow_active = false
+
+func is_synergy_glow_active() -> bool:
+	return _synergy_glow_active
+
+# --- Palette Change Handler for Glyph ---
+func _on_palette_changed_for_glyph(palette_colors: Dictionary) -> void:
+	if not is_instance_valid(glyph_display):
+		return
+
+	var main_color = palette_colors.get("main", Color.WHITE) # Default to white
+	glyph_display.modulate = main_color
+	# print("TrackSlot '%s': Updated glyph modulate color to: %s" % [name, main_color])

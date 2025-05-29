@@ -177,6 +177,14 @@ func _ready():
 	SceneUIManager.show_main_menu()
 	print("Game: Requested SceneUIManager to show main menu.")
 
+	# After [node name="CosmicBackground" parent="." instance=ExtResource("8_cbgnd")]
+	# You might need to get it by name if it's not an @onready var
+	var cb_node = get_node_or_null("UICanvas/CosmicBackground")
+	if is_instance_valid(cb_node):
+		print("Game.gd: CosmicBackground instance in Game scene: Visible = ", cb_node.visible, ", Modulate = ", cb_node.modulate)
+	else:
+		print("Game.gd: CosmicBackground node NOT FOUND in Game scene by get_node_or_null.")
+
 
 func _unhandled_input(event: InputEvent):
 	if current_game_roll_state == GameRollState.LOOT_SELECTION:
@@ -278,7 +286,7 @@ func _end_round():
 
 func _on_progression_game_phase_changed(new_phase_enum_value: int):
 	current_game_phase_local = new_phase_enum_value
-	print("Game: Received game_phase_changed. New local phase: ", ProgressionManager.GamePhase.keys()[current_game_phase_local])
+	print("Game: Received game_phase_changed. New local phase: ", GlobalEnums.GamePhase.keys()[current_game_phase_local])
 
 func _on_progression_cornerstone_unlocked(slot_index_zero_based: int, is_unlocked: bool):
 	print("Game: Received cornerstone_slot_unlocked for slot_idx %d, unlocked: %s" % [slot_index_zero_based, str(is_unlocked)])
@@ -423,40 +431,121 @@ func _evaluate_synergies_and_boons(p_history_for_check: Array[GlyphData]) -> Dic
 	if numeric_double_result.activated:
 		total_synergy_bonus += numeric_double_result.bonus
 		messages.append(numeric_double_result.message)
+		# NEW: Trigger visuals for numeric double
+		if is_instance_valid(hud_instance) and hud_instance.has_method("get_track_slot_node_by_index"):
+			for slot_idx in numeric_double_result.contributing_indices:
+				var slot_node = hud_instance.get_track_slot_node_by_index(slot_idx)
+				if is_instance_valid(slot_node) and slot_node.has_method("activate_synergy_visuals"):
+					slot_node.activate_synergy_visuals(Color.YELLOW.lightened(0.2), 0.7, 1.2) # Example color/params
 	
 	# Check for Rune Boons
+	# Assuming rune boon activation messages are sufficient for now,
+	# or we can extend _check_and_activate_rune_boons to return contributing rune indices too.
 	var rune_boon_result = _check_and_activate_rune_boons(p_history_for_check)
 	messages.append_array(rune_boon_result.messages)
+	# Example for rune boon visuals (if _check_and_activate_rune_boons is modified to return indices):
+	# if rune_boon_result.has("contributing_rune_indices"):
+	#     if is_instance_valid(hud_instance) and hud_instance.has_method("get_track_slot_node_by_index"):
+	#         for slot_idx in rune_boon_result.contributing_rune_indices:
+	#             var slot_node = hud_instance.get_track_slot_node_by_index(slot_idx)
+	#             if is_instance_valid(slot_node) and slot_node.has_method("activate_synergy_visuals"):
+	#                 slot_node.activate_synergy_visuals(Color.CYAN, 0.5, 1.0) # Different color for runes
+
 	# Note: Rune boons might grant effects rather than direct score, handled by _apply_boon_effect
 
 	return {"bonus_score": total_synergy_bonus, "messages": messages}
 
 func _check_numeric_double_synergy(p_history_for_check: Array[GlyphData]) -> Dictionary:
+	var default_return = {"activated": false, "bonus": 0, "message": "", "contributing_indices": []}
 	if synergies_fired_this_round.has(NUMERIC_DOUBLE_SYNERGY):
-		return {"activated": false, "bonus": 0, "message": ""}
+		return default_return
 
-	var d_seen: Dictionary = {}
-	for r_glyph in p_history_for_check:
-		if r_glyph.type == "dice": # Assuming "dice" is the type for numeric glyphs
-			d_seen[r_glyph.value] = d_seen.get(r_glyph.value, 0) + 1
-			if d_seen[r_glyph.value] >= 2:
+	# To find indices, we need to iterate with an index
+	var value_to_indices: Dictionary = {} # Stores {value: [index1, index2, ...]}
+
+	for i in range(p_history_for_check.size()):
+		var r_glyph: GlyphData = p_history_for_check[i]
+		if not is_instance_valid(r_glyph): continue
+
+		if r_glyph.type == "dice":
+			if not value_to_indices.has(r_glyph.value):
+				value_to_indices[r_glyph.value] = []
+			value_to_indices[r_glyph.value].append(i)
+
+			if value_to_indices[r_glyph.value].size() >= 2:
 				synergies_fired_this_round[NUMERIC_DOUBLE_SYNERGY] = true
-				return {"activated": true, "bonus": 5, "message": "NUMERIC DOUBLE! +5"}
-	return {"activated": false, "bonus": 0, "message": ""}
+				# Get the first two indices that formed this double for visual feedback
+				var indices_for_visuals = [value_to_indices[r_glyph.value][0], value_to_indices[r_glyph.value][1]]
+				return {"activated": true, "bonus": 5, "message": "NUMERIC DOUBLE! +5", "contributing_indices": indices_for_visuals}
+				
+	return default_return
 
 func _check_and_activate_rune_boons(p_history_for_check: Array[GlyphData]) -> Dictionary:
 	var messages: Array[String] = []
-	var current_runes_in_history_ids: Array[String] = []
-	for roll_data in p_history_for_check:
-		if roll_data.type == "rune" and is_instance_valid(roll_data) and roll_data.id != "":
-			current_runes_in_history_ids.append(roll_data.id)
+	var current_runes_in_history_ids_with_indices: Array[Dictionary] = [] # Store {id: "rune_id", index: history_idx}
+	for i in range(p_history_for_check.size()):
+		var roll_data: GlyphData = p_history_for_check[i]
+		if is_instance_valid(roll_data) and roll_data.type == "rune" and roll_data.id != "":
+			current_runes_in_history_ids_with_indices.append({"id": roll_data.id, "index": i})
 	
-	var newly_activated_boons_info: Array[Dictionary] = BoonManager.check_and_activate_rune_phrases(current_runes_in_history_ids)
+	var current_runes_in_history_ids_only: Array[String] = []
+	for item in current_runes_in_history_ids_with_indices:
+		current_runes_in_history_ids_only.append(item.id)
+
+	var newly_activated_boons_info: Array[Dictionary] = BoonManager.check_and_activate_rune_phrases(current_runes_in_history_ids_only)
+	
+	var all_contributing_rune_indices_for_visuals: Array[int] = []
+
 	for boon_info in newly_activated_boons_info:
 		messages.append("BOON: %s! (%s)" % [boon_info.name, boon_info.description])
 		active_boons[boon_info.name] = true # Track active boons
 		_apply_boon_effect(boon_info.name) # Apply immediate effects
-	return {"messages": messages}
+		
+		# Find indices of runes that contributed to THIS specific boon for visuals
+		var phrase_data = BoonManager.RUNE_PHRASES.get(boon_info.id_string_name) # Assuming boon_info contains id_string_name
+		if phrase_data and phrase_data.has("runes_required"):
+			var raw_required_ids = phrase_data.runes_required
+			var required_ids_for_this_boon: Array[String] = [] # Ensure this is correctly typed
+
+			if raw_required_ids is Array:
+				for item in raw_required_ids:
+					if item is String:
+						required_ids_for_this_boon.append(item)
+					else:
+						printerr("Game.gd: Non-string item ('%s') found in runes_required for boon ID '%s'." % [str(item), str(boon_info.id_string_name)])
+						# If a non-string is found, this specific boon's required_ids list will be incomplete or empty.
+						# We might want to skip visual effect for this boon or handle more explicitly.
+						# For now, if list becomes empty/incomplete, visuals might not trigger correctly for this boon.
+			else:
+				printerr("Game.gd: runes_required for boon ID '%s' is not an Array. Value: '%s'." % [str(boon_info.id_string_name), str(raw_required_ids)])
+				# Skip visual processing for this boon if runes_required is not an array
+				continue
+
+
+			var temp_found_indices_for_this_boon: Array[int] = []
+			# Ensure required_ids_for_this_boon is not empty before duplicating, though duplicate() handles empty.
+			var temp_required_ids_copy = required_ids_for_this_boon.duplicate() # Duplicating a confirmed Array[String] (or empty)
+
+			for rune_item in current_runes_in_history_ids_with_indices:
+				if temp_required_ids_copy.has(rune_item.id):
+					temp_found_indices_for_this_boon.append(rune_item.index)
+					temp_required_ids_copy.erase(rune_item.id) # Mark as found for this phrase
+					if temp_required_ids_copy.is_empty(): # All runes for this specific phrase found
+						break 
+
+			# Add to master list for visuals if all were found for this specific boon
+			if temp_required_ids_copy.is_empty():
+				all_contributing_rune_indices_for_visuals.append_array(temp_found_indices_for_this_boon)
+
+	# Activate visuals for all runes that contributed to *any* activated boon this check
+	if not all_contributing_rune_indices_for_visuals.is_empty():
+		if is_instance_valid(hud_instance) and hud_instance.has_method("get_track_slot_node_by_index"):
+			for slot_idx in all_contributing_rune_indices_for_visuals:
+				var slot_node = hud_instance.get_track_slot_node_by_index(slot_idx)
+				if is_instance_valid(slot_node) and slot_node.has_method("activate_synergy_visuals"):
+					slot_node.activate_synergy_visuals(Color.PALE_TURQUOISE, 0.6, 1.8) # Rune boon color
+
+	return {"messages": messages} # No direct score from here, "contributing_rune_indices" is now handled internally for visuals
 
 func _on_hud_fanfare_animation_finished():
 	print("Game: HUD reported fanfare animation finished.")

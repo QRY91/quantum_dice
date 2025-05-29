@@ -1,0 +1,29 @@
+[gd_scene load_steps=4 format=3 uid="uid://dgikrm8q1q07s"]
+
+[ext_resource type="Shader" path="res://shaders/static_cosmic_background.gdshader" id="1_shader"]
+[ext_resource type="Script" path="res://scenes/background/CosmicBackground.gd" id="2_script"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_1"]
+shader = ExtResource("1_shader")
+shader_parameter/background_color = Color(0.02, 0.01, 0.04, 1)
+shader_parameter/foreground_color = Color(0.93, 0.87, 0.8, 1)
+shader_parameter/pulse_intensity = 0.8
+shader_parameter/pulse_speed = 0.8
+
+[node name="CosmicBackground" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_script")
+
+[node name="BackgroundRect" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_1")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2

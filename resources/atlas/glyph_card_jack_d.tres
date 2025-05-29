@@ -1,0 +1,7 @@
+[gd_resource type="AtlasTexture" load_steps=2 format=3 uid="uid://ck62xuo2g2ihd"]
+
+[ext_resource type="Texture2D" uid="uid://byi6c4dlcx80r" path="res://assets/sprites/beeg_sheet.png" id="1_k1ebl"]
+
+[resource]
+atlas = ExtResource("1_k1ebl")
+region = Rect2(480, 272, 16, 16)

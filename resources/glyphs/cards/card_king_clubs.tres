@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="GlyphData" load_steps=3 format=3 uid="uid://7u073yeanyf3"]
 
 [ext_resource type="Script" path="res://scripts/resources/GlyphData.gd" id="1_4uvhf"]
-[ext_resource type="Texture2D" uid="uid://by8lv4020j7ay" path="res://assets/sprites/cards/large/card_clubs_K.png" id="2_50l4w"]
+[ext_resource type="Texture2D" uid="uid://c4gmq3oltvoxq" path="res://resources/atlas/glyph_card_king_c.tres" id="2_pe87g"]
 
 [resource]
 script = ExtResource("1_4uvhf")
@@ -9,5 +9,10 @@ id = "card_kc"
 display_name = "King C"
 type = "card"
 value = 13
-texture = ExtResource("2_50l4w")
+texture = ExtResource("2_pe87g")
 suit = "clubs"
+is_superposition = false
+superposition_outcomes = Array[ExtResource("1_4uvhf")]([])
+is_entangled = false
+entanglement_id = &""
+entangled_effect_type = 0

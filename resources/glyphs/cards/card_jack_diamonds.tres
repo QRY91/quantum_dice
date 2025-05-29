@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="GlyphData" load_steps=3 format=3 uid="uid://belgtkie2x4ku"]
 
 [ext_resource type="Script" path="res://scripts/resources/GlyphData.gd" id="1_i5nac"]
-[ext_resource type="Texture2D" uid="uid://ea8f47nwswch" path="res://assets/sprites/cards/large/card_diamonds_J.png" id="2_qc6ar"]
+[ext_resource type="Texture2D" uid="uid://ck62xuo2g2ihd" path="res://resources/atlas/glyph_card_jack_d.tres" id="2_t6s4i"]
 
 [resource]
 script = ExtResource("1_i5nac")
@@ -9,5 +9,10 @@ id = "card_jd"
 display_name = "Jack D"
 type = "card"
 value = 11
-texture = ExtResource("2_qc6ar")
+texture = ExtResource("2_t6s4i")
 suit = "diamonds"
+is_superposition = false
+superposition_outcomes = Array[ExtResource("1_i5nac")]([])
+is_entangled = false
+entanglement_id = &""
+entangled_effect_type = 0

@@ -1,4 +1,4 @@
-[gd_scene load_steps=98 format=3 uid="uid://dec5xjt3ywnvf"]
+[gd_scene load_steps=100 format=3 uid="uid://dec5xjt3ywnvf"]
 
 [ext_resource type="Script" path="res://scenes/Game.gd" id="1_0u5nu"]
 [ext_resource type="Shader" path="res://shaders/palette_swap.gdshader" id="2_3g2yk"]
@@ -8,11 +8,12 @@
 [ext_resource type="Script" path="res://resources/palettes/PalettizedItem.gd" id="4_wg8c7"]
 [ext_resource type="Texture2D" uid="uid://bsargv3ys0fds" path="res://assets/sprites/game_ui_border_white.png" id="6_qrr6q"]
 [ext_resource type="PackedScene" uid="uid://byqllwnq7yhpu" path="res://scenes/animation/RollAnimationController.tscn" id="7_hktyb"]
+[ext_resource type="PackedScene" uid="uid://dgikrm8q1q07s" path="res://scenes/background/CosmicBackground.tscn" id="8_cbgnd"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_i30on"]
 shader = ExtResource("2_3g2yk")
-shader_parameter/palette_background_color = Color(0.93, 0.87, 0.8, 1)
-shader_parameter/palette_main_color = Color(0.1, 0.08, 0.12, 1)
+shader_parameter/palette_main_color = Color(0.93, 0.87, 0.8, 1)
+shader_parameter/palette_background_color = Color(0.1, 0.08, 0.12, 1)
 shader_parameter/palette_accent_color = Color(0.9, 0.25, 0.2, 1)
 shader_parameter/source_placeholder_bg = Color(0, 0, 0, 1)
 shader_parameter/source_placeholder_main = Color(1, 1, 1, 1)
@@ -21,11 +22,21 @@ shader_parameter/color_match_tolerance = 0.05
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_o3tm3"]
 shader = ExtResource("2_3g2yk")
-shader_parameter/palette_background_color = Color(0.93, 0.87, 0.8, 1)
-shader_parameter/palette_main_color = Color(0.1, 0.08, 0.12, 1)
+shader_parameter/palette_main_color = Color(0.93, 0.87, 0.8, 1)
+shader_parameter/palette_background_color = Color(0.1, 0.08, 0.12, 1)
 shader_parameter/palette_accent_color = Color(0.9, 0.25, 0.2, 1)
-shader_parameter/source_placeholder_bg = Color(1, 1, 1, 1)
-shader_parameter/source_placeholder_main = Color(0, 0, 0, 1)
+shader_parameter/source_placeholder_bg = Color(0, 0, 0, 1)
+shader_parameter/source_placeholder_main = Color(1, 1, 1, 1)
+shader_parameter/source_placeholder_accent = Color(1, 0, 0, 1)
+shader_parameter/color_match_tolerance = 0.05
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_mpy0v"]
+shader = ExtResource("2_3g2yk")
+shader_parameter/palette_main_color = Color(0.93, 0.87, 0.8, 1)
+shader_parameter/palette_background_color = Color(0.1, 0.08, 0.12, 1)
+shader_parameter/palette_accent_color = Color(0.9, 0.25, 0.2, 1)
+shader_parameter/source_placeholder_bg = Color(0, 0, 0, 1)
+shader_parameter/source_placeholder_main = Color(1, 1, 1, 1)
 shader_parameter/source_placeholder_accent = Color(1, 0, 0, 1)
 shader_parameter/color_match_tolerance = 0.05
 
@@ -644,7 +655,11 @@ script = ExtResource("1_0u5nu")
 
 [node name="UICanvas" type="CanvasLayer" parent="."]
 
+[node name="CosmicBackground" parent="UICanvas" instance=ExtResource("8_cbgnd")]
+z_index = -1
+
 [node name="BorderRect" type="TextureRect" parent="UICanvas"]
+modulate = Color(1, 1, 1, 0.3)
 material = SubResource("ShaderMaterial_i30on")
 offset_right = 640.0
 offset_bottom = 640.0
@@ -654,6 +669,7 @@ script = ExtResource("4_wg8c7")
 metadata/_edit_lock_ = true
 
 [node name="LogoUIRect" type="TextureRect" parent="UICanvas"]
+visible = false
 modulate = Color(0.317647, 0.317647, 0.317647, 1)
 material = SubResource("ShaderMaterial_o3tm3")
 offset_right = 640.0
@@ -686,11 +702,13 @@ metadata/_edit_lock_ = true
 
 [node name="RollAnimationDisplay" type="AnimatedSprite2D" parent="UICanvas/MainGameUI/AnimatedRollButton"]
 z_index = 2
+material = SubResource("ShaderMaterial_mpy0v")
 position = Vector2(80, 80)
 scale = Vector2(0.625, 0.625)
 sprite_frames = SubResource("SpriteFrames_j0wi5")
 autoplay = "default"
 frame_progress = 0.509438
+script = ExtResource("4_wg8c7")
 metadata/_edit_lock_ = true
 
 [node name="RolledGlyphOnButtonDisplay" type="TextureRect" parent="UICanvas/MainGameUI/AnimatedRollButton"]
