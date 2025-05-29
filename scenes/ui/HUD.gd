@@ -23,6 +23,8 @@ signal fanfare_animation_finished
 var fanfare_check_timer: Timer = null 
 var _fanfare_active_tweens: int = 0
 
+var current_target_score: int = 0 # Add a variable to store the current target
+
 const SCORE_POPUP_DURATION: float = 1.2
 const SCORE_POPUP_TRAVEL_Y: float = -70.0
 
@@ -50,12 +52,44 @@ func _ready():
 	# Ensure inventory is hidden by default and updated
 	set_inventory_visibility(false) # Use the new public method
 	
+	# Ensure the score label has a material for the shader
+	if is_instance_valid(score_label) and not score_label.material:
+		printerr("HUD _ready: ScoreLabel material is not set! Creating a new ShaderMaterial.")
+		# This is a fallback, ideally it's set in the .tscn file
+		var mat = ShaderMaterial.new()
+		var loaded_shader = load("res://score_display.gdshader") # Make sure path is correct
+		if loaded_shader:
+			mat.shader = loaded_shader
+			score_label.material = mat
+			# Initialize shader params if created dynamically
+			score_label.material.set_shader_parameter("score_ratio", 0.0) # Assumes 'score_ratio' exists
+		else:
+			printerr("HUD _ready: FAILED to load 'res://score_display.gdshader'. Shader effects will not work.")
+	
 	print("HUD _ready: End.")
+
+func _process(delta: float):
+	# Update shader time uniform if the material and parameter exist
+	if is_instance_valid(score_label) and score_label.material is ShaderMaterial:
+		var mat: ShaderMaterial = score_label.material
+		if mat.shader: # Check if a shader is assigned to the material
+			mat.set_shader_parameter("time", Time.get_ticks_msec() / 1000.0)
 
 # --- Public Functions for Game.gd to Call ---
 
 func update_score_target_display(p_score: int, p_target: int):
-	if is_instance_valid(score_label): score_label.text = "Score " + str(p_score)
+	current_target_score = p_target # Store the target score
+	if is_instance_valid(score_label):
+		score_label.text = "Score " + str(p_score)
+		# Update shader score_ratio
+		if score_label.material is ShaderMaterial:
+			var mat: ShaderMaterial = score_label.material
+			if mat.shader: # Check if a shader is assigned
+				var score_ratio = 0.0
+				if current_target_score > 0:
+					score_ratio = clampf(float(p_score) / float(current_target_score), 0.0, 1.0)
+				mat.set_shader_parameter("score_ratio", score_ratio)
+
 	if is_instance_valid(target_label): target_label.text = "Target " + str(p_target)
 
 func update_level_display(p_level: int):
@@ -197,6 +231,17 @@ func play_score_fanfare(points_from_roll: int, points_from_synergy: int, new_tot
 		var original_modulate = score_label.modulate
 		var original_pos = score_label.position
 		var pop_scale_factor = 1.1 + (success_tier * 0.1)
+
+		# Update shader score_ratio based on new_total_round_score and target
+		if score_label.material is ShaderMaterial:
+			var mat: ShaderMaterial = score_label.material
+			if mat.shader: # Check if a shader is assigned
+				var score_ratio = 0.0
+				if current_target_score > 0:
+					score_ratio = clampf(float(new_total_round_score) / float(current_target_score), 0.0, 1.0)
+				print("HUD Fanfare: Updating score_ratio to: ", score_ratio)
+				mat.set_shader_parameter("score_ratio", score_ratio)
+
 		score_anim_tween.tween_property(score_label, "scale", original_scale * pop_scale_factor, 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		score_anim_tween.tween_property(score_label, "scale", original_scale, 0.2).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
 		score_anim_tween.tween_callback(Callable(score_label, "set_text").bind("Score " + str(new_total_round_score)))

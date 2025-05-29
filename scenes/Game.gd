@@ -2,6 +2,11 @@
 class_name Game # Keep this for RollAnimationController to access Game.ROLL_BUTTON_GLYPH_SIZE
 extends Node2D
 
+# --- Constants for IDs ---
+const NUMERIC_DOUBLE_SYNERGY: StringName = &"numeric_double"
+const SUN_POWER_BOON: StringName = &"sun_power"
+const WATER_FLOW_BOON: StringName = &"water_flow"
+
 # --- Game Moment-to-Moment State Enum ---
 enum GameRollState {
 	MENU,
@@ -15,13 +20,13 @@ enum GameRollState {
 var current_game_roll_state: GameRollState = GameRollState.MENU
 
 # --- Game Progression Phase Enum ---
-enum GamePhase {
-	PRE_BOSS,
-	FIRST_BOSS_ENCOUNTER,
-	MID_GAME_CYCLE,
-	MID_GAME_BOSS_ENCOUNTER
-}
-var current_game_phase_local: GamePhase = GamePhase.PRE_BOSS
+# enum GamePhase { # <--- REMOVE THIS BLOCK
+# 	PRE_BOSS,
+# 	FIRST_BOSS_ENCOUNTER,
+# 	MID_GAME_CYCLE,
+# 	MID_GAME_BOSS_ENCOUNTER
+# } # <--- REMOVE THIS BLOCK
+var current_game_phase_local: int = ProgressionManager.GamePhase.PRE_BOSS # <--- CHANGE TYPE AND INITIALIZATION
 
 
 # --- Success Tier Enum ---
@@ -322,47 +327,25 @@ func _calculate_score_and_synergies(resolved_glyph_for_scoring: GlyphData, curre
 		return {"points_from_roll":0, "points_from_synergy":0, "points_from_entanglement":0, "synergy_messages":[], "entanglement_messages":[]}
 	
 	# 1. Base score from the rolled (resolved) glyph
-	points_from_roll = resolved_glyph_for_scoring.value 
-	if resolved_glyph_for_scoring.type == "dice":
-		points_from_roll += extra_points_per_dice_glyph_boon
+	points_from_roll = _get_base_score_for_glyph(resolved_glyph_for_scoring)
 	
 	# 2. Cornerstone bonus (if applicable)
-	var current_logical_slot_index = current_roll_history.size()
-	if ProgressionManager.is_cornerstone_effect_active(2) and current_logical_slot_index == 2:
-		points_from_roll += CORNERSTONE_SLOT_3_BONUS 
-		PlayerNotificationSystem.display_message("Cornerstone Slot 3 Bonus: +%d Score!" % CORNERSTONE_SLOT_3_BONUS) # This could be part of synergy_messages
+	var cornerstone_bonus_details = _get_cornerstone_bonus(current_roll_history.size())
+	points_from_roll += cornerstone_bonus_details.bonus
+	if cornerstone_bonus_details.message:
+		# Decide if cornerstone messages should be part of synergy_messages or handled differently
+		# For now, let's add it to synergy_messages for consistency with PlayerNotificationSystem usage.
+		synergy_messages.append(cornerstone_bonus_details.message)
 
-	# --- Entanglement Check (Photon Twins "Shared Momentum") ---
-	if resolved_glyph_for_scoring.is_entangled and \
-	   resolved_glyph_for_scoring.entangled_effect_type == GlyphData.EntangledEffectType.SHARED_MOMENTUM_SCORE_BONUS:
-		
-		var player_dice: Array[GlyphData] = PlayerDiceManager.get_current_dice()
-		for glyph_on_die in player_dice:
-			if is_instance_valid(glyph_on_die) and \
-			   glyph_on_die.is_entangled and \
-			   glyph_on_die.entanglement_id == resolved_glyph_for_scoring.entanglement_id and \
-			   glyph_on_die.id != resolved_glyph_for_scoring.id:
-				
-				var entanglement_bonus_value = glyph_on_die.value # Get the bonus value
-				points_from_entanglement += entanglement_bonus_value
-				var message = "Entangled! '%s' on dice adds +%d (via %s)" % [glyph_on_die.display_name, entanglement_bonus_value, resolved_glyph_for_scoring.display_name]
-				entanglement_messages.append(message)
-				PlayerNotificationSystem.display_message(message)
-				
-				# Visual feedback trigger
-				if is_instance_valid(hud_instance) and hud_instance.has_method("trigger_entanglement_visuals"):
-					# We need the slot index of the resolved_glyph_for_scoring
-					# current_roll_history.size() is the index where it WILL be placed.
-					var rolled_glyph_slot_idx = current_roll_history.size() 
-					hud_instance.trigger_entanglement_visuals(rolled_glyph_slot_idx, glyph_on_die, entanglement_bonus_value) # Pass index, partner, and bonus
-
-				print("Game: Entanglement triggered: %s (rolled) with %s (on dice). Bonus: +%d" % [resolved_glyph_for_scoring.id, glyph_on_die.id, entanglement_bonus_value])
-				break
+	# 3. Entanglement Bonus
+	var entanglement_details = _get_entanglement_bonus(resolved_glyph_for_scoring, current_roll_history.size())
+	points_from_entanglement = entanglement_details.bonus
+	entanglement_messages.append_array(entanglement_details.messages)
 	
 	# Add points from roll and entanglement to score before synergy calculation
 	ScoreManager.add_to_round_score(points_from_roll + points_from_entanglement)
 
-	# 3. Standard Synergies and Boons
+	# 4. Standard Synergies and Boons
 	# Synergies are checked with a temporary history that includes the current resolved glyph
 	var temp_history_with_current_resolved_glyph = current_roll_history.duplicate(true)
 	temp_history_with_current_resolved_glyph.append(resolved_glyph_for_scoring)
@@ -389,15 +372,88 @@ func _calculate_score_and_synergies(resolved_glyph_for_scoring: GlyphData, curre
 		"synergy_messages": all_messages_for_fanfare # Combined messages
 	}
 
+func _get_base_score_for_glyph(glyph_data: GlyphData) -> int:
+	if not is_instance_valid(glyph_data):
+		return 0
+	var score = glyph_data.value
+	if glyph_data.type == "dice": # Assuming "dice" is the type string for standard dice faces
+		score += extra_points_per_dice_glyph_boon
+	return score
+
+func _get_cornerstone_bonus(current_roll_history_size: int) -> Dictionary:
+	var bonus = 0
+	var message = ""
+	# current_roll_history.size() is the 0-indexed slot the current glyph will occupy.
+	# Slot 3 is index 2.
+	if ProgressionManager.is_cornerstone_effect_active(2) and current_roll_history_size == 2:
+		bonus = CORNERSTONE_SLOT_3_BONUS
+		message = "Cornerstone Slot 3 Bonus: +%d Score!" % CORNERSTONE_SLOT_3_BONUS
+		PlayerNotificationSystem.display_message(message) # Keep immediate notification if desired
+	return {"bonus": bonus, "message": message}
+
+func _get_entanglement_bonus(resolved_glyph: GlyphData, current_history_size_for_slot_idx: int) -> Dictionary:
+	var bonus = 0
+	var messages: Array[String] = []
+
+	if not resolved_glyph.is_entangled or \
+	   resolved_glyph.entangled_effect_type != GlyphData.EntangledEffectType.SHARED_MOMENTUM_SCORE_BONUS:
+		return {"bonus": bonus, "messages": messages}
+
+	var player_dice: Array[GlyphData] = PlayerDiceManager.get_current_dice()
+	for glyph_on_die in player_dice:
+		if is_instance_valid(glyph_on_die) and \
+		   glyph_on_die.is_entangled and \
+		   glyph_on_die.entanglement_id == resolved_glyph.entanglement_id and \
+		   glyph_on_die.id != resolved_glyph.id:
+			
+			var entanglement_bonus_value = glyph_on_die.value
+			bonus += entanglement_bonus_value
+			var msg = "Entangled! '%s' on dice adds +%d (via %s)" % [glyph_on_die.display_name, entanglement_bonus_value, resolved_glyph.display_name]
+			messages.append(msg)
+			PlayerNotificationSystem.display_message(msg) # Keep immediate notification
+			
+			if is_instance_valid(hud_instance) and hud_instance.has_method("trigger_entanglement_visuals"):
+				hud_instance.trigger_entanglement_visuals(current_history_size_for_slot_idx, glyph_on_die, entanglement_bonus_value)
+			
+			print("Game: Entanglement triggered: %s (rolled) with %s (on dice). Bonus: +%d" % [resolved_glyph.id, glyph_on_die.id, entanglement_bonus_value])
+			break # Assuming only one partner contributes for this effect type
+			
+	return {"bonus": bonus, "messages": messages}
+
 func _evaluate_synergies_and_boons(p_history_for_check: Array[GlyphData]) -> Dictionary:
 	var total_synergy_bonus: int = 0
 	var messages: Array[String] = []
 	if p_history_for_check.is_empty(): return {"bonus_score": 0, "messages": []}
 
-	if not synergies_fired_this_round.has("numeric_double"):
-		var d_seen:Dictionary={}; for r in p_history_for_check: if r.type=="dice": d_seen[r.value]=d_seen.get(r.value,0)+1; if d_seen[r.value]>=2: total_synergy_bonus+=5;synergies_fired_this_round["numeric_double"]=true;messages.append("NUMERIC DOUBLE! +5");break
+	# Check for "Numeric Double" synergy
+	var numeric_double_result = _check_numeric_double_synergy(p_history_for_check)
+	if numeric_double_result.activated:
+		total_synergy_bonus += numeric_double_result.bonus
+		messages.append(numeric_double_result.message)
 	
-	var current_runes_in_history_ids: Array[String]=[]
+	# Check for Rune Boons
+	var rune_boon_result = _check_and_activate_rune_boons(p_history_for_check)
+	messages.append_array(rune_boon_result.messages)
+	# Note: Rune boons might grant effects rather than direct score, handled by _apply_boon_effect
+
+	return {"bonus_score": total_synergy_bonus, "messages": messages}
+
+func _check_numeric_double_synergy(p_history_for_check: Array[GlyphData]) -> Dictionary:
+	if synergies_fired_this_round.has(NUMERIC_DOUBLE_SYNERGY):
+		return {"activated": false, "bonus": 0, "message": ""}
+
+	var d_seen: Dictionary = {}
+	for r_glyph in p_history_for_check:
+		if r_glyph.type == "dice": # Assuming "dice" is the type for numeric glyphs
+			d_seen[r_glyph.value] = d_seen.get(r_glyph.value, 0) + 1
+			if d_seen[r_glyph.value] >= 2:
+				synergies_fired_this_round[NUMERIC_DOUBLE_SYNERGY] = true
+				return {"activated": true, "bonus": 5, "message": "NUMERIC DOUBLE! +5"}
+	return {"activated": false, "bonus": 0, "message": ""}
+
+func _check_and_activate_rune_boons(p_history_for_check: Array[GlyphData]) -> Dictionary:
+	var messages: Array[String] = []
+	var current_runes_in_history_ids: Array[String] = []
 	for roll_data in p_history_for_check:
 		if roll_data.type == "rune" and is_instance_valid(roll_data) and roll_data.id != "":
 			current_runes_in_history_ids.append(roll_data.id)
@@ -405,9 +461,9 @@ func _evaluate_synergies_and_boons(p_history_for_check: Array[GlyphData]) -> Dic
 	var newly_activated_boons_info: Array[Dictionary] = BoonManager.check_and_activate_rune_phrases(current_runes_in_history_ids)
 	for boon_info in newly_activated_boons_info:
 		messages.append("BOON: %s! (%s)" % [boon_info.name, boon_info.description])
-		active_boons[boon_info.name] = true
-		_apply_boon_effect(boon_info.name)
-	return {"bonus_score": total_synergy_bonus, "messages": messages}
+		active_boons[boon_info.name] = true # Track active boons
+		_apply_boon_effect(boon_info.name) # Apply immediate effects
+	return {"messages": messages}
 
 func _on_hud_fanfare_animation_finished():
 	print("Game: HUD reported fanfare animation finished.")
@@ -663,11 +719,14 @@ func _reset_boons_and_effects():
 	extra_points_per_dice_glyph_boon = 0
 	extra_max_rolls_boon = 0
 
-func _apply_boon_effect(boon_id: String):
-	if boon_id == "sun_power":
+func _apply_boon_effect(boon_id_string_name: StringName): # Changed to StringName for consistency
+	# Convert StringName to String for comparisons if BoonManager uses strings, or update BoonManager
+	var boon_id_str = str(boon_id_string_name).trim_prefix("&")
+
+	if boon_id_str == str(SUN_POWER_BOON).trim_prefix("&"): # Compare with the constant
 		extra_points_per_dice_glyph_boon = BoonManager.get_extra_points_for_dice_glyph()
-	elif boon_id == "water_flow":
+	elif boon_id_str == str(WATER_FLOW_BOON).trim_prefix("&"): # Compare with the constant
 		var current_bm_extra_rolls = BoonManager.get_extra_max_rolls()
 		if current_bm_extra_rolls != extra_max_rolls_boon:
 			extra_max_rolls_boon = current_bm_extra_rolls
-			_update_hud_static_elements()
+			_update_hud_static_elements() # Ensure HUD updates if max rolls change mid-round due to a boon

@@ -1,3 +1,6 @@
-[gd_scene format=3 uid="uid://dhse3mse78lis"]
+[gd_scene load_steps=2 format=3 uid="uid://dhse3mse78lis"]
+
+[ext_resource type="Script" path="res://ScoreDisplayDemo.gd" id="1_4br0d"]
 
 [node name="Node" type="Node"]
+script = ExtResource("1_4br0d")

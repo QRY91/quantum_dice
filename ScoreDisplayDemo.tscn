@@ -1,0 +1,47 @@
+[gd_scene load_steps=4 format=3 uid="uid://cw026mo71sulm"]
+
+[ext_resource type="Script" path="res://ScoreDisplayDemo.gd" id="1_abcde"]
+[ext_resource type="Shader" path="res://score_display.gdshader" id="2_fghij"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_label_shader"]
+shader = ExtResource("2_fghij")
+shader_parameter/tier_base_color = null
+shader_parameter/tier_bronze_color = null
+shader_parameter/tier_silver_color = null
+shader_parameter/tier_gold_color = null
+shader_parameter/tier_platinum_color = null
+shader_parameter/score_ratio = 0.0
+shader_parameter/time = null
+shader_parameter/shimmer_speed = 1.0
+shader_parameter/shimmer_intensity = 0.1
+shader_parameter/shimmer_scale = 10.0
+
+[node name="ScoreDisplayDemo" type="Node2D"]
+script = ExtResource("1_abcde")
+
+[node name="ScoreLabel" type="Label" parent="."]
+material = SubResource("ShaderMaterial_label_shader")
+offset_left = 50.0
+offset_top = 50.0
+offset_right = 450.0
+offset_bottom = 150.0
+text = "Score: 0 / Max: 100 (0.00)"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="InstructionsLabel" type="Label" parent="."]
+offset_left = 50.0
+offset_top = 200.0
+offset_right = 550.0
+offset_bottom = 300.0
+text = "Press Space to increase score. Press R to reset."
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HSlider" type="HSlider" parent="."]
+offset_left = 50.0
+offset_top = 160.0
+offset_right = 450.0
+offset_bottom = 180.0
+
+[connection signal="value_changed" from="HSlider" to="." method="_on_HSlider_value_changed"]

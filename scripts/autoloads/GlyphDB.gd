@@ -119,7 +119,7 @@ func _get_truly_random_loot(count: int) -> Array[GlyphData]:
 		loot_options.append(available_loot_pool[i])
 	return loot_options
 
-func get_random_loot_options(count: int, _current_player_dice_faces_unused: Array[GlyphData] = []) -> Array[GlyphData]:
+func get_random_loot_options(count: int) -> Array[GlyphData]:
 	if force_specific_loot_for_testing:
 		var forced_loot_options: Array[GlyphData] = []
 		var attempted_ids_this_call: Array[String] = [] # To avoid offering same test item twice in one call if count > 1

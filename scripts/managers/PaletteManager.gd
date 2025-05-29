@@ -1,6 +1,8 @@
 # res://scripts/managers/PaletteManager.gd (or your preferred path)
 extends Node
 
+const PaletteDefinitionScript = preload("res://resources/palettes/palette_definition.gd") # Explicitly load the script
+
 ## Emitted when the effective palette (user-selected or temporary override) changes.
 ## Provides a dictionary with the target colors for the shader.
 signal active_palette_updated(palette_colors: Dictionary)
