@@ -1,8 +1,8 @@
-extends Control
+extends Panel
 
 signal back_pressed
 
-@onready var palette_container = $VBoxContainer/ScrollContainer/PaletteContainer
+@onready var palette_container = $MarginContainer/VBoxContainer/ScrollContainer/PaletteContainer
 @onready var palette_button_group = ButtonGroup.new()
 @onready var back_button = %BackButton
 

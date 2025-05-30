@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="GlyphData" load_steps=3 format=3 uid="uid://py5n4h801v8o"]
 
 [ext_resource type="Script" path="res://scripts/resources/GlyphData.gd" id="1_pg66u"]
-[ext_resource type="Texture2D" uid="uid://chk77cu15cjmd" path="res://assets/sprites/cards/large/card_spades_A.png" id="2_fe261"]
+[ext_resource type="Texture2D" uid="uid://buyqerbhuwim" path="res://resources/atlas/cards/glyph_card_ace_s.tres" id="2_4o32f"]
 
 [resource]
 script = ExtResource("1_pg66u")
@@ -9,5 +9,10 @@ id = "card_as"
 display_name = "Ace S"
 type = "card"
 value = 14
-texture = ExtResource("2_fe261")
+texture = ExtResource("2_4o32f")
 suit = "spades"
+is_superposition = false
+superposition_outcomes = Array[ExtResource("1_pg66u")]([])
+is_entangled = false
+entanglement_id = &""
+entangled_effect_type = 0

@@ -13,8 +13,9 @@ signal back_pressed
 
 var palette_swapper_scene = preload("res://scenes/ui/palette_swapper.tscn")
 var ambient_sound_panel_scene = preload("res://scenes/ui/AmbientSoundPanel.tscn")
-var palette_swapper: Control
-var ambient_sound_panel: Control
+var palette_swapper: CanvasLayer
+var ambient_sound_panel_canvas: CanvasLayer
+var ambient_sound_panel: PanelContainer
 
 # Track if we're opened from the main menu (where we don't want to pause)
 var opened_from_main_menu: bool = false
@@ -57,15 +58,17 @@ func _on_palette_button_pressed():
 	if not palette_swapper:
 		palette_swapper = palette_swapper_scene.instantiate()
 		add_child(palette_swapper)
-		palette_swapper.back_pressed.connect(_on_palette_swapper_back)
+		var panel = palette_swapper.get_node("Panel")
+		panel.back_pressed.connect(_on_palette_swapper_back)
 	palette_swapper.show()
 	# Hide the settings menu panel but keep the script running
 	settings_panel.hide()
 
 func _on_ambient_sound_button_pressed():
-	if not ambient_sound_panel:
-		ambient_sound_panel = ambient_sound_panel_scene.instantiate()
-		add_child(ambient_sound_panel)
+	if not ambient_sound_panel_canvas:
+		ambient_sound_panel_canvas = ambient_sound_panel_scene.instantiate()
+		add_child(ambient_sound_panel_canvas)
+		ambient_sound_panel = ambient_sound_panel_canvas.get_node("Panel")
 		ambient_sound_panel.back_pressed.connect(_on_ambient_sound_panel_back)
 		# Make it smaller and center it
 		ambient_sound_panel.custom_minimum_size = Vector2(500, 600)
@@ -73,7 +76,7 @@ func _on_ambient_sound_button_pressed():
 			(get_viewport_rect().size.x - ambient_sound_panel.custom_minimum_size.x) / 2,
 			(get_viewport_rect().size.y - ambient_sound_panel.custom_minimum_size.y) / 2
 		)
-	ambient_sound_panel.show()
+	ambient_sound_panel_canvas.show()
 	# Hide the settings menu panel but keep the script running
 	settings_panel.hide()
 
@@ -83,8 +86,8 @@ func _on_palette_swapper_back():
 	settings_panel.show()
 
 func _on_ambient_sound_panel_back():
-	if ambient_sound_panel:
-		ambient_sound_panel.hide()
+	if ambient_sound_panel_canvas:
+		ambient_sound_panel_canvas.hide()
 	settings_panel.show()
 
 func _on_back_button_pressed():
@@ -97,8 +100,8 @@ func show_menu(from_main_menu: bool = false):
 	settings_panel.show()
 	if palette_swapper:
 		palette_swapper.hide()
-	if ambient_sound_panel:
-		ambient_sound_panel.hide()
+	if ambient_sound_panel_canvas:
+		ambient_sound_panel_canvas.hide()
 	
 	# Only pause if not opened from main menu
 	if not opened_from_main_menu:
@@ -109,8 +112,8 @@ func hide_menu():
 	hide() # Hide Control
 	if palette_swapper:
 		palette_swapper.hide()
-	if ambient_sound_panel:
-		ambient_sound_panel.hide()
+	if ambient_sound_panel_canvas:
+		ambient_sound_panel_canvas.hide()
 	
 	# Only unpause if we weren't opened from main menu
 	if not opened_from_main_menu:
@@ -127,7 +130,7 @@ func _input(event: InputEvent):
 			_on_palette_swapper_back()
 			return
 
-		if is_instance_valid(ambient_sound_panel) and ambient_sound_panel.visible:
+		if is_instance_valid(ambient_sound_panel_canvas) and ambient_sound_panel_canvas.visible:
 			_on_ambient_sound_panel_back()
 			return
 		

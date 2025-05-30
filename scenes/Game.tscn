@@ -651,6 +651,7 @@ animations = [{
 }]
 
 [node name="Game" type="Node2D"]
+process_mode = 3
 script = ExtResource("1_0u5nu")
 
 [node name="UICanvas" type="CanvasLayer" parent="."]

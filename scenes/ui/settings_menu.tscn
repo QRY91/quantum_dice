@@ -5,8 +5,9 @@
 
 [node name="SettingsMenuCanvasLayer" type="CanvasLayer"]
 layer = 30
+process_mode = 2
 
-[node name="SettingsMenu" type="Control" parent="SettingsMenuCanvasLayer"]
+[node name="SettingsMenu" type="Control" parent="."]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -23,100 +24,113 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -200.0
+offset_left = -250.0
 offset_top = -250.0
-offset_right = 200.0
+offset_right = 250.0
 offset_bottom = 250.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Panel"]
+[node name="MarginContainer" type="MarginContainer" parent="SettingsMenu/Panel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 20
-alignment = 1
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
 
-[node name="TitleLabel" type="Label" parent="VBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="SettingsMenu/Panel/MarginContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
+theme_override_constants/separation = 15
+
+[node name="TitleLabel" type="Label" parent="SettingsMenu/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
 text = "Settings"
 horizontal_alignment = 1
 
-[node name="AudioSettings" type="VBoxContainer" parent="VBoxContainer"]
+[node name="HSeparator3" type="HSeparator" parent="SettingsMenu/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AudioSettings" type="VBoxContainer" parent="SettingsMenu/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="MusicContainer" type="VBoxContainer" parent="AudioSettings"]
+[node name="MusicContainer" type="GridContainer" parent="SettingsMenu/Panel/MarginContainer/VBoxContainer/AudioSettings"]
 layout_mode = 2
+columns = 2
 
-[node name="MusicLabel" type="Label" parent="MusicContainer"]
+[node name="MusicLabel" type="Label" parent="SettingsMenu/Panel/MarginContainer/VBoxContainer/AudioSettings/MusicContainer"]
 layout_mode = 2
+size_flags_horizontal = 3
 text = "Music Volume"
-horizontal_alignment = 1
 
-[node name="MusicSlider" type="HSlider" parent="MusicContainer"]
+[node name="MusicSlider" type="HSlider" parent="SettingsMenu/Panel/MarginContainer/VBoxContainer/AudioSettings/MusicContainer"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
+size_flags_horizontal = 3
 max_value = 1.0
 step = 0.01
 value = 1.0
 
-[node name="MusicToggle" type="CheckButton" parent="MusicContainer"]
+[node name="MusicToggle" type="CheckButton" parent="SettingsMenu/Panel/MarginContainer/VBoxContainer/AudioSettings"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Music Enabled"
-alignment = 1
 
-[node name="SFXContainer" type="VBoxContainer" parent="AudioSettings"]
+[node name="SFXContainer" type="GridContainer" parent="SettingsMenu/Panel/MarginContainer/VBoxContainer/AudioSettings"]
 layout_mode = 2
+columns = 2
 
-[node name="SFXLabel" type="Label" parent="SFXContainer"]
+[node name="SFXLabel" type="Label" parent="SettingsMenu/Panel/MarginContainer/VBoxContainer/AudioSettings/SFXContainer"]
 layout_mode = 2
+size_flags_horizontal = 3
 text = "SFX Volume"
-horizontal_alignment = 1
 
-[node name="SFXSlider" type="HSlider" parent="SFXContainer"]
+[node name="SFXSlider" type="HSlider" parent="SettingsMenu/Panel/MarginContainer/VBoxContainer/AudioSettings/SFXContainer"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
+size_flags_horizontal = 3
 max_value = 1.0
 step = 0.01
 value = 1.0
 
-[node name="SFXToggle" type="CheckButton" parent="SFXContainer"]
+[node name="SFXToggle" type="CheckButton" parent="SettingsMenu/Panel/MarginContainer/VBoxContainer/AudioSettings"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "SFX Enabled"
-alignment = 1
 
-[node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="SettingsMenu/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 20
 
-[node name="PaletteButton" type="Button" parent="VBoxContainer"]
+[node name="ButtonsContainer" type="VBoxContainer" parent="SettingsMenu/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="PaletteButton" type="Button" parent="SettingsMenu/Panel/MarginContainer/VBoxContainer/ButtonsContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 50)
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
-size_flags_horizontal = 4
 text = "Change Palette"
 
-[node name="AmbientSoundButton" type="Button" parent="VBoxContainer"]
+[node name="AmbientSoundButton" type="Button" parent="SettingsMenu/Panel/MarginContainer/VBoxContainer/ButtonsContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 50)
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
-size_flags_horizontal = 4
 text = "Ambient Sound"
 
-[node name="HSeparator2" type="HSeparator" parent="VBoxContainer"]
+[node name="HSeparator2" type="HSeparator" parent="SettingsMenu/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 20
 
-[node name="BackButton" type="Button" parent="VBoxContainer"]
+[node name="BackButton" type="Button" parent="SettingsMenu/Panel/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 50)
+custom_minimum_size = Vector2(120, 40)
 layout_mode = 2
 size_flags_horizontal = 4
-text = "Back" 
+text = "Back"
