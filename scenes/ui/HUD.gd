@@ -2,23 +2,73 @@
 # TABS FOR INDENTATION
 extends Control
 
-signal inventory_toggled(is_now_visible: bool) # Existing signal
-signal fanfare_animation_finished 
+signal inventory_toggled(is_inventory_visible: bool)
+signal fanfare_animation_finished
+signal game_menu_button_pressed # New signal for the game menu button
 
-# --- UI Node References ---
-@onready var score_label: Label = $ScoreLabel
-@onready var target_label: Label = $TargetLabel
-@onready var rolls_label: Label = $RollsLabel
-@onready var level_label: Label = $LevelLabel
+# Constants for node paths (can be adjusted if your scene structure changes)
+# Score fanfare is now handled directly in HUD, no separate node needed
+# ... other const paths
+const HISTORY_TRACK_PATH = "%HistoryTrackContainer"
+const DICE_FACE_SCROLL_CONTAINER_PATH = "%DiceFaceScrollContainer"
+const DICE_FACE_VBOX_PATH = "%DiceFaceScrollContainer/VBoxContainer"
+const INVENTORY_TOGGLE_BUTTON_PATH = "%InventoryToggleButton"
 
-@onready var synergy_notification_label: Label = $SynergyNotificationLabel
+const LEVEL_DISPLAY_PATH = "%LevelDisplay"
+const ROLLS_DISPLAY_PATH = "%RollsLabel"
+const SCORE_TARGET_DISPLAY_PATH = "%ScoreLabel"
+const TOTAL_SCORE_DISPLAY_PATH = "%TotalScoreDisplay"
 
-@onready var dice_face_scroll_container: ScrollContainer = $DiceFaceScrollContainer
-@onready var dice_face_display_container: GridContainer = $DiceFaceScrollContainer/dice_face_display_container
-@onready var inventory_toggle_button: TextureButton = $InventoryToggleButton # HUD's own inventory button
+const CORNERSTONE_SLOT_1_PATH = "%CornerstoneSlot1"
+const CORNERSTONE_SLOT_2_PATH = "%CornerstoneSlot2"
+const CORNERSTONE_SLOT_3_PATH = "%CornerstoneSlot3"
+const CORNERSTONE_GLYPH_1_PATH = "%CornerstoneSlot1/CornerstoneGlyph1"
+const CORNERSTONE_GLYPH_2_PATH = "%CornerstoneSlot2/CornerstoneGlyph2"
+const CORNERSTONE_GLYPH_3_PATH = "%CornerstoneSlot3/CornerstoneGlyph3"
 
-@onready var boss_indicator_label: Label = $BossIndicatorLabel
-@onready var track_manager: Control = $LogicTrackDisplay
+const BOSS_INDICATOR_PANEL_PATH = "%BossIndicatorPanel"
+const BOSS_INDICATOR_LABEL_PATH = "%BossIndicatorPanel/BossIndicatorLabel"
+
+const GAME_MENU_BUTTON_PATH = "%GameMenuButton" # Path for the new button
+const SYNERGY_NOTIFICATION_LABEL_PATH = "%SynergyNotificationLabel" # Path for SynergyNotificationLabel
+const TRACK_MANAGER_PATH = "%LogicTrackDisplay" # Path for TrackManager (LogicTrackDisplay)
+
+# Configuration
+@export var MAX_HISTORY_SLOTS = 5
+@export var GLYPH_HISTORY_SIZE = Vector2(80, 80)
+@export var GLYPH_INVENTORY_SIZE = Vector2(64, 64)
+@export var RUNESLOT_OVERLAY_TEXTURE: Texture2D
+
+# Node references
+@onready var history_track_container: HBoxContainer = get_node_or_null(HISTORY_TRACK_PATH)
+@onready var dice_face_scroll_container: ScrollContainer = get_node_or_null(DICE_FACE_SCROLL_CONTAINER_PATH)
+@onready var dice_face_vbox: VBoxContainer = get_node_or_null(DICE_FACE_VBOX_PATH)
+@onready var inventory_toggle_button: TextureButton = get_node_or_null(INVENTORY_TOGGLE_BUTTON_PATH)
+
+@onready var level_display_label: Label = get_node_or_null(LEVEL_DISPLAY_PATH)
+@onready var rolls_display_label: Label = get_node_or_null(ROLLS_DISPLAY_PATH)
+@onready var score_target_display_label: Label = get_node_or_null(SCORE_TARGET_DISPLAY_PATH)
+@onready var total_score_display_label: Label = get_node_or_null(TOTAL_SCORE_DISPLAY_PATH)
+
+@onready var cornerstone_slots: Array[Panel] = [
+	get_node_or_null(CORNERSTONE_SLOT_1_PATH),
+	get_node_or_null(CORNERSTONE_SLOT_2_PATH),
+	get_node_or_null(CORNERSTONE_SLOT_3_PATH)
+]
+@onready var cornerstone_glyphs: Array[TextureRect] = [
+	get_node_or_null(CORNERSTONE_GLYPH_1_PATH),
+	get_node_or_null(CORNERSTONE_GLYPH_2_PATH),
+	get_node_or_null(CORNERSTONE_GLYPH_3_PATH)
+]
+
+@onready var boss_indicator_panel: PanelContainer = get_node_or_null(BOSS_INDICATOR_PANEL_PATH)
+@onready var boss_indicator_label: Label = get_node_or_null(BOSS_INDICATOR_LABEL_PATH)
+
+@onready var game_menu_button: TextureButton = get_node_or_null(GAME_MENU_BUTTON_PATH)
+@onready var synergy_notification_label: Label = get_node_or_null(SYNERGY_NOTIFICATION_LABEL_PATH)
+@onready var track_manager: Control = get_node_or_null(TRACK_MANAGER_PATH)
+
+var history_slots_nodes: Array[TextureRect] = []
 
 var fanfare_check_timer: Timer = null 
 var _fanfare_active_tweens: int = 0
@@ -36,18 +86,28 @@ func _ready():
 	print("HUD _ready: Start.")
 	if not is_instance_valid(dice_face_scroll_container):
 		printerr("HUD _ready: DiceFaceScrollContainer NOT FOUND.")
-	if not is_instance_valid(dice_face_display_container):
+	if not is_instance_valid(dice_face_vbox):
 		printerr("HUD _ready: dice_face_display_container NOT FOUND.")
 	
-	if not is_instance_valid(track_manager):
-		printerr("HUD _ready: LogicTrackDisplay (TrackManager) node NOT FOUND!")
+	if not is_instance_valid(history_track_container):
+		printerr("HUD _ready: HistoryTrackContainer node NOT FOUND!")
 	else:
-		print("HUD _ready: LogicTrackDisplay (TrackManager) node found.")
+		print("HUD _ready: HistoryTrackContainer node found.")
 		
-	if is_instance_valid(inventory_toggle_button):
-		inventory_toggle_button.pressed.connect(_on_hud_inventory_toggle_button_pressed) # Renamed for clarity
-	else:	
+	if not is_instance_valid(synergy_notification_label):
+		printerr("HUD: SynergyNotificationLabel node not found at path: ", SYNERGY_NOTIFICATION_LABEL_PATH)
+	else:
+		print("HUD: SynergyNotificationLabel node found.")
+
+	if not is_instance_valid(track_manager):
+		printerr("HUD: TrackManager (LogicTrackDisplay) node not found at path: ", TRACK_MANAGER_PATH)
+	else:
+		print("HUD: TrackManager (LogicTrackDisplay) node found.")
+		
+	if not is_instance_valid(inventory_toggle_button):
 		printerr("HUD _ready: InventoryToggleButton (HUD's own) NOT FOUND.")
+	else:	
+		inventory_toggle_button.toggled.connect(_on_inventory_toggle_button_toggled)
 		
 	if PlayerDiceManager.has_signal("player_dice_changed"):
 		PlayerDiceManager.player_dice_changed.connect(_on_player_dice_manager_changed)
@@ -57,16 +117,16 @@ func _ready():
 	set_inventory_visibility(false) # Use the new public method
 	
 	# Ensure the score label has a material for the shader
-	if is_instance_valid(score_label) and not score_label.material:
-		printerr("HUD _ready: ScoreLabel material is not set! Creating a new ShaderMaterial.")
+	if is_instance_valid(score_target_display_label) and not score_target_display_label.material:
+		printerr("HUD _ready: ScoreTargetDisplay material is not set! Creating a new ShaderMaterial.")
 		# This is a fallback, ideally it's set in the .tscn file
 		var mat = ShaderMaterial.new()
 		var loaded_shader = load("res://score_display.gdshader") # Make sure path is correct
 		if loaded_shader:
 			mat.shader = loaded_shader
-			score_label.material = mat
+			score_target_display_label.material = mat
 			# Initialize shader params if created dynamically
-			# score_label.material.set_shader_parameter("score_ratio", 0.0) # score_ratio is set in update_score_target_display
+			# score_target_display_label.material.set_shader_parameter("score_ratio", 0.0) # score_ratio is set in update_score_target_display
 		else:
 			printerr("HUD _ready: FAILED to load 'res://score_display.gdshader'. Shader effects will not work.")
 
@@ -74,12 +134,12 @@ func _ready():
 	if PaletteManager: # Check if the autoload exists
 		PaletteManager.active_palette_updated.connect(_on_palette_changed)
 		# Apply initial palette colors if material exists
-		if is_instance_valid(score_label) and score_label.material:
+		if is_instance_valid(score_target_display_label) and score_target_display_label.material:
 			_on_palette_changed(PaletteManager.get_current_palette_colors())
-		elif is_instance_valid(score_label) and not score_label.material:
-			printerr("HUD _ready: ScoreLabel material not ready for initial palette application. Should be created above.")
-		else: # score_label itself might not be valid
-			pass # Error already printed if material wasn't created due to no score_label
+		elif is_instance_valid(score_target_display_label) and not score_target_display_label.material:
+			printerr("HUD _ready: ScoreTargetDisplay material not ready for initial palette application. Should be created above.")
+		else: # score_target_display_label itself might not be valid
+			pass # Error already printed if material wasn't created due to no score_target_display_label
 	else:
 		printerr("HUD _ready: PaletteManager not found. Make sure it's an autoload. Shader colors will not be dynamic.")
 	
@@ -87,8 +147,8 @@ func _ready():
 
 func _process(delta: float):
 	# Update shader time uniform if the material and parameter exist
-	if is_instance_valid(score_label) and score_label.material is ShaderMaterial:
-		var mat: ShaderMaterial = score_label.material
+	if is_instance_valid(score_target_display_label) and score_target_display_label.material is ShaderMaterial:
+		var mat: ShaderMaterial = score_target_display_label.material
 		if mat.shader: # Check if a shader is assigned to the material
 			mat.set_shader_parameter("time", Time.get_ticks_msec() / 1000.0)
 
@@ -96,11 +156,11 @@ func _process(delta: float):
 
 func update_score_target_display(p_score: int, p_target: int):
 	current_target_score = p_target # Store the target score
-	if is_instance_valid(score_label):
-		score_label.text = "Score " + str(p_score)
+	if is_instance_valid(score_target_display_label):
+		score_target_display_label.text = "Score: %d / %d" % [p_score, p_target]
 		# Update shader score_ratio
-		if score_label.material is ShaderMaterial:
-			var mat: ShaderMaterial = score_label.material
+		if score_target_display_label.material is ShaderMaterial:
+			var mat: ShaderMaterial = score_target_display_label.material
 			if mat.shader: # Check if a shader is assigned
 				var score_ratio = 0.0
 				if current_target_score > 0:
@@ -112,16 +172,16 @@ func update_score_target_display(p_score: int, p_target: int):
 					if PaletteManager: # Check if the autoload exists
 						_on_palette_changed(PaletteManager.get_current_palette_colors())
 
-	if is_instance_valid(target_label): target_label.text = "Target " + str(p_target)
+	if is_instance_valid(level_display_label): level_display_label.text = "Level: %d" % p_target
 
 func update_level_display(p_level: int):
-	if is_instance_valid(level_label): level_label.text = "Level " + str(p_level)
+	if is_instance_valid(level_display_label): level_display_label.text = "Level: %d" % p_level
 	
 func update_rolls_display(p_rolls_available: int, p_max_rolls_this_round: int):
-	if is_instance_valid(rolls_label):
-		rolls_label.text = "Rolls " + str(p_rolls_available) + "/" + str(p_max_rolls_this_round)
+	if is_instance_valid(rolls_display_label):
+		rolls_display_label.text = "Rolls: %d/%d" % [p_rolls_available, p_max_rolls_this_round]
 	else:
-		printerr("HUD: rolls_label not valid in update_rolls_display")
+		printerr("HUD: rolls_display_label not valid in update_rolls_display")
 
 func show_synergy_message(full_message: String):
 	if is_instance_valid(synergy_notification_label) and not full_message.is_empty():
@@ -130,26 +190,37 @@ func show_synergy_message(full_message: String):
 		clear_timer.timeout.connect(Callable(synergy_notification_label, "set_text").bind(""))
 
 func update_dice_inventory_display(current_player_dice_array: Array[GlyphData]):
-	if not is_instance_valid(dice_face_display_container):
-		printerr("HUD: DiceFaceDisplayContainer is not valid.")
+	if not is_instance_valid(dice_face_vbox):
+		printerr("HUD: Cannot update dice inventory, VBoxContainer for glyphs is missing.")
 		return
-	for child in dice_face_display_container.get_children():
+	for child in dice_face_vbox.get_children():
 		child.queue_free()
 	if current_player_dice_array.is_empty():
 		var empty_label := Label.new()
-		empty_label.text = "[No Faces]"
-		dice_face_display_container.add_child(empty_label)
+		empty_label.text = "Dice Bag is Empty"
+		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		dice_face_vbox.add_child(empty_label)
 		return
 	for glyph_data in current_player_dice_array:
 		if not is_instance_valid(glyph_data): continue
-		var face_rect := TextureRect.new()
-		face_rect.custom_minimum_size = Vector2(40, 40) # Ensure this matches your design
-		face_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		face_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		face_rect.texture = glyph_data.texture
-		face_rect.tooltip_text = glyph_data.display_name + " (Val: " + str(glyph_data.value) + ")"
-		face_rect.set_meta("glyph_id", glyph_data.id) # <<< STORE GLYPH ID
-		dice_face_display_container.add_child(face_rect)
+		var glyph_entry = HBoxContainer.new()
+		glyph_entry.alignment = HBoxContainer.ALIGNMENT_CENTER
+
+		var texture_rect = TextureRect.new()
+		texture_rect.texture = glyph_data.texture
+		texture_rect.custom_minimum_size = GLYPH_INVENTORY_SIZE
+		texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		glyph_entry.add_child(texture_rect)
+
+		var name_label = Label.new()
+		name_label.text = glyph_data.display_name
+		name_label.custom_minimum_size = Vector2(100, GLYPH_INVENTORY_SIZE.y)
+		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		glyph_entry.add_child(name_label)
+		
+		dice_face_vbox.add_child(glyph_entry)
+	print("HUD: Dice inventory display updated with %d glyphs." % current_player_dice_array.size())
 
 # --- Inventory Management ---
 func set_inventory_visibility(is_visible: bool):
@@ -178,7 +249,7 @@ func set_inventory_visibility(is_visible: bool):
 	emit_signal("inventory_toggled", is_visible)
 
 # Renamed for clarity: This is for the HUD's own inventory toggle button
-func _on_hud_inventory_toggle_button_pressed():
+func _on_inventory_toggle_button_toggled(button_pressed: bool):
 	if not is_instance_valid(dice_face_scroll_container): return
 	# Toggle visibility based on current state
 	set_inventory_visibility(!dice_face_scroll_container.visible)
@@ -212,120 +283,81 @@ func trigger_entanglement_visuals(rolled_glyph_slot_index: int, partner_glyph_on
 	
 	# 2. Animate the partner glyph in the inventory (DiceFaceDisplayContainer)
 	# (This part remains the same as the previous HUD.gd snippet, using metadata)
-	if is_instance_valid(dice_face_display_container) and is_instance_valid(partner_glyph_on_die_data):
-		for child_node in dice_face_display_container.get_children():
-			if child_node is TextureRect:
-				var face_rect: TextureRect = child_node
-				var meta_glyph_id = face_rect.get_meta("glyph_id", "")
-				if meta_glyph_id == partner_glyph_on_die_data.id:
+	if is_instance_valid(dice_face_vbox) and is_instance_valid(partner_glyph_on_die_data):
+		for child_node in dice_face_vbox.get_children():
+			if child_node is HBoxContainer and child_node.get_child_count() > 1:
+				var label_node = child_node.get_child(1) # Assuming label is second child
+				if label_node is Label and label_node.text == partner_glyph_on_die_data.display_name:
 					print("HUD: Found partner glyph '%s' in inventory for animation." % partner_glyph_on_die_data.id)
 					var tween = create_tween()
 					tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 					tween.set_parallel(true)
-					var original_scale = face_rect.scale
+					var original_scale = child_node.get_child(0).scale
 					var pulse_scale = original_scale * 1.4 # Make inventory pulse a bit more distinct
-					var original_modulate = face_rect.modulate
+					var original_modulate = child_node.get_child(0).modulate
 					var pulse_modulate_color = Color.SKY_BLUE # Slightly different shade
 
-					tween.tween_property(face_rect, "scale", pulse_scale, 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-					tween.tween_property(face_rect, "scale", original_scale, 0.25).set_delay(0.15).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
-					tween.tween_property(face_rect, "modulate", pulse_modulate_color, 0.1).set_trans(Tween.TRANS_LINEAR)
-					tween.tween_property(face_rect, "modulate", original_modulate, 0.3).set_delay(0.1).set_trans(Tween.TRANS_LINEAR)
+					tween.tween_property(child_node.get_child(0), "scale", pulse_scale, 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+					tween.tween_property(child_node.get_child(0), "scale", original_scale, 0.25).set_delay(0.15).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+					tween.tween_property(child_node.get_child(0), "modulate", pulse_modulate_color, 0.1).set_trans(Tween.TRANS_LINEAR)
+					tween.tween_property(child_node.get_child(0), "modulate", original_modulate, 0.3).set_delay(0.1).set_trans(Tween.TRANS_LINEAR)
 					break 
 	
 	# 3. Score pop-up for entanglement bonus
-	if entanglement_bonus_amount > 0 and is_instance_valid(score_label):
+	if entanglement_bonus_amount > 0 and is_instance_valid(score_target_display_label):
 		var popup_text = "+%d Entangled!" % entanglement_bonus_amount
 		var popup_color = Color.CYAN # Or Color.SKY_BLUE
 		# Position it slightly differently from other popups
-		var start_pos = score_label.global_position + Vector2(randf_range(-10, 10), -60 + randf_range(-5, 5)) 
+		var start_pos = score_target_display_label.global_position + Vector2(randf_range(-10, 10), -60 + randf_range(-5, 5)) 
 		_create_score_popup_label(popup_text, start_pos, popup_color, 0.15) # Slight delay
 
 func play_score_fanfare(points_from_roll: int, points_from_synergy: int, new_total_round_score: int, synergy_messages: Array[String], success_tier: int):
 	# print("HUD: play_score_fanfare. Roll pts: %d, Synergy pts: %d, NEW TOTAL SCORE: %d, Tier: %d, Msgs: %s" % [points_from_roll, points_from_synergy, new_total_round_score, success_tier, str(synergy_messages)])
 	_fanfare_active_tweens = 0 
 
-	if is_instance_valid(score_label):
+	# Create score popup for roll points if any
+	if points_from_roll > 0:
 		_fanfare_active_tweens += 1
-		var score_anim_tween = create_tween()
-		score_anim_tween.set_parallel(false) 
-		var original_scale = score_label.scale
-		var original_modulate = score_label.modulate
-		var original_pos = score_label.position
-		var pop_scale_factor = 1.1 + (success_tier * 0.1)
+		var roll_points_text = "+%d" % points_from_roll
+		var start_pos = score_target_display_label.global_position + Vector2(randf_range(-10, 10), 0)
+		var popup_tween = _create_score_popup_label(roll_points_text, start_pos)
+		popup_tween.finished.connect(_on_fanfare_tween_finished)
 
-		# Update shader score_ratio based on new_total_round_score and target
-		if score_label.material is ShaderMaterial:
-			var mat: ShaderMaterial = score_label.material
-			if mat.shader: # Check if a shader is assigned
-				var score_ratio = 0.0
-				if current_target_score > 0:
-					score_ratio = clampf(float(new_total_round_score) / float(current_target_score), 0.0, 1.0)
-				print("HUD Fanfare: Updating score_ratio to: ", score_ratio)
-				mat.set_shader_parameter("score_ratio", score_ratio)
-
-		score_anim_tween.tween_property(score_label, "scale", original_scale * pop_scale_factor, 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		score_anim_tween.tween_property(score_label, "scale", original_scale, 0.2).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
-		score_anim_tween.tween_callback(Callable(score_label, "set_text").bind("Score " + str(new_total_round_score)))
-		if success_tier > 0:
-			var flash_color = Color.YELLOW
-			if success_tier >= 3: flash_color = Color.GOLD
-			if success_tier >= 4: flash_color = Color.ORANGE_RED
-			score_anim_tween.tween_property(score_label, "modulate", flash_color, 0.1)
-			score_anim_tween.tween_property(score_label, "modulate", original_modulate, 0.1).set_delay(0.1)
-			if success_tier >= 2:
-				score_anim_tween.tween_property(score_label, "modulate", flash_color, 0.1)
-				score_anim_tween.tween_property(score_label, "modulate", original_modulate, 0.1).set_delay(0.1)
-		if success_tier >= 2:
-			var shake_amount = 3.0 + success_tier
-			var shake_duration_each = 0.05
-			for _i in range(3 + success_tier):
-				score_anim_tween.tween_property(score_label, "position", original_pos + Vector2(randf_range(-shake_amount, shake_amount), randf_range(-shake_amount, shake_amount)), shake_duration_each)
-			score_anim_tween.tween_property(score_label, "position", original_pos, shake_duration_each)
-		score_anim_tween.finished.connect(_on_individual_fanfare_tween_finished.bind("Score Label"))
-	else:
-		printerr("HUD: score_label is not valid for fanfare animation!")
-
-	if points_from_roll != 0:
+	# Create score popup for synergy points if any
+	if points_from_synergy > 0:
 		_fanfare_active_tweens += 1
-		var roll_popup_text: String = "+" + str(points_from_roll)
-		var roll_popup_color: Color = Color.WHITE
-		if points_from_roll < 0: roll_popup_color = Color.RED
-		var roll_popup_tween = _create_score_popup_label(roll_popup_text, score_label.global_position + Vector2(0, -20), roll_popup_color)
-		roll_popup_tween.finished.connect(_on_individual_fanfare_tween_finished.bind("Roll Points Popup"))
-	
-	if points_from_synergy != 0:
-		_fanfare_active_tweens += 1
-		var synergy_popup_text: String = "+" + str(points_from_synergy) + " Synergy!"
-		var synergy_popup_color: Color = Color.GOLD 
-		var synergy_popup_tween = _create_score_popup_label(synergy_popup_text, score_label.global_position + Vector2(20, -40), synergy_popup_color, 0.2)
-		synergy_popup_tween.finished.connect(_on_individual_fanfare_tween_finished.bind("Synergy Points Popup"))
-	
-	if not synergy_messages.is_empty():
-		var combined_message = ""
-		for msg in synergy_messages: combined_message += msg + "\n"
-		show_synergy_message(combined_message.strip_edges())
+		var synergy_points_text = "+%d SYNERGY!" % points_from_synergy
+		var start_pos = score_target_display_label.global_position + Vector2(randf_range(-10, 10), -30)
+		var popup_tween = _create_score_popup_label(synergy_points_text, start_pos, Color.YELLOW)
+		popup_tween.finished.connect(_on_fanfare_tween_finished)
 
+	# Show synergy messages with slight delays
+	for i in range(synergy_messages.size()):
+		_fanfare_active_tweens += 1
+		var msg = synergy_messages[i]
+		var start_pos = score_target_display_label.global_position + Vector2(randf_range(-10, 10), -60 + (i * -20))
+		var popup_tween = _create_score_popup_label(msg, start_pos, Color.CYAN, 0.15 * i)
+		popup_tween.finished.connect(_on_fanfare_tween_finished)
+
+	# If no animations were created, emit finished immediately
 	if _fanfare_active_tweens == 0:
 		emit_signal("fanfare_animation_finished")
 
-func _on_individual_fanfare_tween_finished(tween_name: String):
-	# print("HUD: Tween '%s' FINISHED." % tween_name)
-	if _fanfare_active_tweens > 0:
-		_fanfare_active_tweens -= 1
-	if _fanfare_active_tweens == 0:
+func _on_fanfare_tween_finished():
+	_fanfare_active_tweens -= 1
+	if _fanfare_active_tweens <= 0:
 		emit_signal("fanfare_animation_finished")
 
 func _on_palette_changed(palette_colors: Dictionary) -> void:
-	if not is_instance_valid(score_label) or not score_label.material or not score_label.material.shader:
-		# print("HUD: ScoreLabel material or shader not found, cannot apply palette colors.")
+	if not is_instance_valid(score_target_display_label) or not score_target_display_label.material or not score_target_display_label.material.shader:
+		# print("HUD: ScoreTargetDisplay material or shader not found, cannot apply palette colors.")
 		# This can happen if _ready order is such that material isn't set when first signal arrives
 		return
 
 	var main_color = palette_colors.get("main", Color.WHITE)
 	var accent_color = palette_colors.get("accent", Color.RED)
 
-	var mat: ShaderMaterial = score_label.material
+	var mat: ShaderMaterial = score_target_display_label.material
 
 	mat.set_shader_parameter("tier_base_color", main_color)
 	
@@ -340,7 +372,7 @@ func _on_palette_changed(palette_colors: Dictionary) -> void:
 	var platinum_color = accent_color.lightened(0.2).lerp(Color.WHITE, 0.3)
 	mat.set_shader_parameter("tier_platinum_color", platinum_color)
 	
-	# print("HUD: Updated ScoreLabel shader colors from palette.")
+	# print("HUD: Updated ScoreTargetDisplay shader colors from palette.")
 
 func _create_score_popup_label(text_to_display: String, start_global_pos: Vector2, color: Color = Color.WHITE, delay: float = 0.0) -> Tween:
 	var popup_label = Label.new()
@@ -400,14 +432,14 @@ func update_cornerstone_display(slot_index_zero_based: int, is_logic_unlocked: b
 		printerr("HUD: TrackManager not found for update_cornerstone_display (update_specific_cornerstone_logic_unlocked).")
 
 func show_boss_incoming_indicator(show: bool, message: String = "Boss Incoming!"):
-	if not is_instance_valid(boss_indicator_label):
+	if not is_instance_valid(boss_indicator_panel):
 		return
 	if show:
+		boss_indicator_panel.visible = true
 		boss_indicator_label.text = message
 		boss_indicator_label.tooltip_text = "The next round features a powerful Boss!"
-		boss_indicator_label.visible = true
 	else:
-		boss_indicator_label.visible = false
+		boss_indicator_panel.visible = false
 
 # Helper for Game.gd to access track slot nodes for synergy visuals
 func get_track_slot_node_by_index(index: int) -> Node:
@@ -415,4 +447,8 @@ func get_track_slot_node_by_index(index: int) -> Node:
 		return track_manager.get_track_slot_by_index(index)
 	printerr("HUD: Cannot get_track_slot_node_by_index. TrackManager is invalid or missing method.")
 	return null
+
+func _on_game_menu_button_pressed():
+	emit_signal("game_menu_button_pressed")
+	print("HUD: Game menu button pressed, emitting signal.")
 

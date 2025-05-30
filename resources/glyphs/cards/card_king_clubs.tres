@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="GlyphData" load_steps=3 format=3 uid="uid://7u073yeanyf3"]
 
 [ext_resource type="Script" path="res://scripts/resources/GlyphData.gd" id="1_4uvhf"]
-[ext_resource type="Texture2D" uid="uid://c4gmq3oltvoxq" path="res://resources/atlas/glyph_card_king_c.tres" id="2_pe87g"]
+[ext_resource type="Texture2D" uid="uid://c4gmq3oltvoxq" path="res://resources/atlas/cards/glyph_card_king_c.tres" id="2_pe87g"]
 
 [resource]
 script = ExtResource("1_4uvhf")

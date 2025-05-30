@@ -30,9 +30,10 @@ var game_hud_instance: Control
 
 var animating_glyph_node: TextureRect = null
 
+# Score fanfare animations are handled by HUD.gd
 @onready var dice_roll_effect_timer: Timer = $DiceRollEffectTimer
 @onready var reveal_on_button_timer: Timer = $RevealOnButtonTimer
-@onready var collapse_effect_timer: Timer = $CollapseEffectTimer # New timer for collapse
+@onready var collapse_effect_timer: Timer = $CollapseEffectTimer
 
 const DICE_ROLL_EFFECT_DURATION: float = 0.1 
 const REVEAL_INITIAL_ON_BUTTON_DURATION: float = 0.5 # Can be shorter if followed by collapse
@@ -48,24 +49,22 @@ func _ready():
 		dice_roll_effect_timer.wait_time = DICE_ROLL_EFFECT_DURATION
 		dice_roll_effect_timer.timeout.connect(_on_dice_roll_effect_timer_timeout)
 	else:
-		printerr("RollAnimationController: DiceRollEffectTimer node not found!")
+		printerr("RollAnimationController: DiceRollEffectTimer node not found! Check scene setup.")
 
 	if is_instance_valid(reveal_on_button_timer): # Will be reused for initial and resolved reveal
 		reveal_on_button_timer.one_shot = true
 		# reveal_on_button_timer.wait_time set dynamically
 		reveal_on_button_timer.timeout.connect(_on_reveal_timer_timeout)
 	else:
-		printerr("RollAnimationController: RevealOnButtonTimer node not found!")
+		printerr("RollAnimationController: RevealOnButtonTimer node not found! Check scene setup.")
 
-	if not is_instance_valid(collapse_effect_timer): # Check if it exists in scene, if not, create
-		collapse_effect_timer = Timer.new()
-		collapse_effect_timer.name = "CollapseEffectTimer"
-		add_child(collapse_effect_timer)
-		print("RollAnimationController: CollapseEffectTimer created programmatically.")
-	
-	collapse_effect_timer.one_shot = true
-	collapse_effect_timer.wait_time = COLLAPSE_ANIMATION_DURATION
-	collapse_effect_timer.timeout.connect(_on_collapse_effect_timer_timeout)
+	# collapse_effect_timer should now be assigned by @onready
+	if is_instance_valid(collapse_effect_timer):
+		collapse_effect_timer.one_shot = true
+		collapse_effect_timer.wait_time = COLLAPSE_ANIMATION_DURATION
+		collapse_effect_timer.timeout.connect(_on_collapse_effect_timer_timeout)
+	else:
+		printerr("RollAnimationController: CollapseEffectTimer node not found! Check scene setup or @onready var.")
 	
 	current_anim_state = AnimState.IDLE
 

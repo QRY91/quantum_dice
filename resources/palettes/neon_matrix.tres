@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PaletteDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/palettes/palette_definition.gd" id="1_p4j2q"]
+
+[resource]
+script = ExtResource("1_p4j2q")
+id = &"neon_matrix"
+display_name = "Neon Matrix"
+palette_background_color = Color(0.05, 0.1, 0.08, 1.0)
+palette_main_color = Color(0.0, 1.0, 0.4, 1.0)
+palette_accent_color = Color(1.0, 0.2, 0.6, 1.0)
+is_unlocked_by_default = true 

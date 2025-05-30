@@ -8,3 +8,5 @@ script = ExtResource("1_rafqf")
 [node name="DiceRollEffectTimer" type="Timer" parent="."]
 
 [node name="RevealOnButtonTimer" type="Timer" parent="."]
+
+[node name="CollapseEffectTimer" type="Timer" parent="."]

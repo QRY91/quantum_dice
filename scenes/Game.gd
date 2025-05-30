@@ -15,7 +15,8 @@ enum GameRollState {
 	PLAYING,
 	AWAITING_ANIMATION_COMPLETION,
 	LOOT_SELECTION,
-	GAME_OVER
+	GAME_OVER,
+	PAUSED # New state for when the in-game menu is open
 }
 var current_game_roll_state: GameRollState = GameRollState.MENU
 
@@ -54,7 +55,7 @@ var active_boons: Dictionary = {}
 
 
 # --- Animation Control ---
-@onready var roll_animation_controller: Node
+@onready var roll_animation_controller: Node = $RollAnimationController
 
 # --- CORE UI Node References ---
 @onready var roll_button: TextureButton = $UICanvas/MainGameUI/AnimatedRollButton
@@ -77,37 +78,87 @@ var auto_roll_enabled: bool = false
 @onready var auto_roll_delay_timer: Timer
 @onready var auto_roll_button: TextureButton
 
+# --- In-Game Menu ---
+var in_game_menu_scene: PackedScene = preload("res://scenes/ui/InGameMenu.tscn")
+var in_game_menu_instance: Control
+var settings_menu_scene: PackedScene = preload("res://scenes/ui/settings_menu.tscn") # Preload settings menu
+var settings_menu_instance: Control # Instance for settings menu
+
 
 func _ready():
-	roll_animation_controller = get_node_or_null("RollAnimationController")
+	# RollAnimationController is instanced in Game.tscn via [node name="RollAnimationController" parent="." instance=ExtResource("7_hktyb")].
+	# The @onready var roll_animation_controller should point to it.
+	# The manual instantiation block that was here previously has been removed.
+
 	if not is_instance_valid(roll_animation_controller):
-		printerr("CRITICAL: RollAnimationController node not found in Game.tscn!")
+		printerr("CRITICAL: RollAnimationController node (expected @onready from Game.tscn) NOT FOUND or NOT VALID!") # Updated message
 	else:
-		print("Game: RollAnimationController node found.")
+		print("Game: RollAnimationController node (from @onready var) found and initially valid.")
+		if roll_animation_controller != null: # Extra check for null, though is_instance_valid should cover it
+			print("Game: RAC script: ", roll_animation_controller.get_script())
+		else:
+			print("Game: RAC is null despite is_instance_valid being true initially? This is odd.")
+
 		# Connect to its signals
-		if roll_animation_controller.has_signal("logical_roll_requested"):
+		print("Game: --- Checking 'logical_roll_requested' ---")
+		print("Game: Before 'logical_roll_requested' check. RAC is valid: ", is_instance_valid(roll_animation_controller))
+		if is_instance_valid(roll_animation_controller) and roll_animation_controller.has_signal("logical_roll_requested"):
+			print("Game: 'logical_roll_requested' signal FOUND. Connecting...")
 			roll_animation_controller.logical_roll_requested.connect(_on_rac_logical_roll_requested)
+			print("Game: 'logical_roll_requested' signal CONNECTED.")
+		elif not is_instance_valid(roll_animation_controller):
+			printerr("ERROR: RollAnimationController BECAME INVALID before 'logical_roll_requested' has_signal check!")
 		else: 
-			printerr("ERROR: RollAnimationController missing 'logical_roll_requested' signal.")
+			printerr("ERROR: RollAnimationController missing 'logical_roll_requested' signal (but RAC is valid).")
+		print("Game: After 'logical_roll_requested' connect/check. RAC is valid: ", is_instance_valid(roll_animation_controller))
 		
-		if roll_animation_controller.has_signal("fanfare_start_requested"):
+		print("Game: --- Checking 'fanfare_start_requested' ---")
+		print("Game: Before 'fanfare_start_requested' check. RAC is valid: ", is_instance_valid(roll_animation_controller))
+		if is_instance_valid(roll_animation_controller) and roll_animation_controller.has_signal("fanfare_start_requested"):
+			print("Game: 'fanfare_start_requested' signal FOUND. Connecting...")
 			roll_animation_controller.fanfare_start_requested.connect(_on_rac_fanfare_start_requested)
+			print("Game: 'fanfare_start_requested' signal CONNECTED.")
+		elif not is_instance_valid(roll_animation_controller):
+			printerr("ERROR: RollAnimationController BECAME INVALID before 'fanfare_start_requested' has_signal check!")
 		else: 
-			printerr("ERROR: RollAnimationController missing 'fanfare_start_requested' signal.")
+			printerr("ERROR: RollAnimationController missing 'fanfare_start_requested' signal (but RAC is valid).")
+		print("Game: After 'fanfare_start_requested' connect/check. RAC is valid: ", is_instance_valid(roll_animation_controller))
 
-		if roll_animation_controller.has_signal("move_to_history_requested"):
+		print("Game: --- Checking 'move_to_history_requested' ---")
+		print("Game: Before 'move_to_history_requested' check. RAC is valid: ", is_instance_valid(roll_animation_controller))
+		if is_instance_valid(roll_animation_controller) and roll_animation_controller.has_signal("move_to_history_requested"):
+			print("Game: 'move_to_history_requested' signal FOUND. Connecting...")
 			roll_animation_controller.move_to_history_requested.connect(_on_rac_move_to_history_requested)
+			print("Game: 'move_to_history_requested' signal CONNECTED.")
+		elif not is_instance_valid(roll_animation_controller):
+			printerr("ERROR: RollAnimationController BECAME INVALID before 'move_to_history_requested' has_signal check!")
 		else: 
-			printerr("ERROR: RollAnimationController missing 'move_to_history_requested' signal.")
+			printerr("ERROR: RollAnimationController missing 'move_to_history_requested' signal (but RAC is valid).")
+		print("Game: After 'move_to_history_requested' connect/check. RAC is valid: ", is_instance_valid(roll_animation_controller))
 
-		if roll_animation_controller.has_signal("full_animation_sequence_complete"):
+		print("Game: --- Checking 'full_animation_sequence_complete' ---")
+		print("Game: Before 'full_animation_sequence_complete' check. RAC is valid: ", is_instance_valid(roll_animation_controller))
+		if is_instance_valid(roll_animation_controller) and roll_animation_controller.has_signal("full_animation_sequence_complete"):
+			print("Game: 'full_animation_sequence_complete' signal FOUND. Connecting...")
 			roll_animation_controller.full_animation_sequence_complete.connect(_on_rac_full_animation_sequence_complete)
+			print("Game: 'full_animation_sequence_complete' signal CONNECTED.")
+		elif not is_instance_valid(roll_animation_controller):
+			printerr("ERROR: RollAnimationController BECAME INVALID before 'full_animation_sequence_complete' has_signal check!")
 		else: 
-			printerr("ERROR: RollAnimationController missing 'full_animation_sequence_complete' signal.")
+			printerr("ERROR: RollAnimationController missing 'full_animation_sequence_complete' signal (but RAC is valid).")
+		print("Game: After 'full_animation_sequence_complete' connect/check. RAC is valid: ", is_instance_valid(roll_animation_controller))
 
-		# Setup references for the controller (this might be called again later once hud_instance is ready, which is fine)
-		if roll_animation_controller.has_method("setup_references"):
+		print("Game: --- Setting up references for RollAnimationController ---")
+		print("Game: Before 'setup_references' call. RAC is valid: ", is_instance_valid(roll_animation_controller))
+		if is_instance_valid(roll_animation_controller) and roll_animation_controller.has_method("setup_references"):
+			print("Game: 'setup_references' method FOUND. Calling...")
 			roll_animation_controller.setup_references(roll_button, ui_canvas, hud_instance) 
+			print("Game: 'setup_references' method CALLED.")
+		elif not is_instance_valid(roll_animation_controller):
+			printerr("ERROR: RollAnimationController BECAME INVALID before 'setup_references' call!")
+		else:
+			printerr("ERROR: RollAnimationController missing 'setup_references' method (but RAC is valid).")
+		print("Game: After 'setup_references' call. RAC is valid: ", is_instance_valid(roll_animation_controller))
 	auto_roll_delay_timer = Timer.new(); auto_roll_delay_timer.name = "AutoRollDelayTimer"
 	auto_roll_delay_timer.wait_time = 0.25; auto_roll_delay_timer.one_shot = true
 	auto_roll_delay_timer.timeout.connect(_on_auto_roll_delay_timer_timeout); add_child(auto_roll_delay_timer)
@@ -145,6 +196,13 @@ func _ready():
 		if is_instance_valid(auto_roll_button) and auto_roll_button.has_signal("auto_roll_toggled"):
 			auto_roll_button.auto_roll_toggled.connect(_on_auto_roll_toggled)
 			if auto_roll_button.has_method("get_current_state"): auto_roll_enabled = auto_roll_button.get_current_state()
+
+		# Connect to HUD's game menu button signal (assuming it exists)
+		if hud_instance.has_signal("game_menu_button_pressed"):
+			hud_instance.game_menu_button_pressed.connect(_toggle_in_game_menu)
+		else:
+			printerr("Game: HUD instance does not have 'game_menu_button_pressed' signal. Gear button might not work.")
+
 	else: 
 		printerr("ERROR: HUD.tscn not preloaded!")
 	
@@ -185,10 +243,42 @@ func _ready():
 	else:
 		print("Game.gd: CosmicBackground node NOT FOUND in Game scene by get_node_or_null.")
 
+	# --- In-Game Menu Setup ---
+	if in_game_menu_scene:
+		in_game_menu_instance = in_game_menu_scene.instantiate()
+		if is_instance_valid(ui_canvas): ui_canvas.add_child(in_game_menu_instance)
+		else: add_child(in_game_menu_instance); printerr("Game: UICanvas not found for InGameMenu.")
+		in_game_menu_instance.hide() # Start hidden
+
+		# Connect InGameMenu signals
+		if in_game_menu_instance.has_signal("resume_pressed"):
+			in_game_menu_instance.resume_pressed.connect(_on_in_game_menu_resume)
+		if in_game_menu_instance.has_signal("settings_pressed"):
+			in_game_menu_instance.settings_pressed.connect(_on_in_game_menu_settings)
+		if in_game_menu_instance.has_signal("retry_pressed"):
+			in_game_menu_instance.retry_pressed.connect(_on_in_game_menu_retry)
+		if in_game_menu_instance.has_signal("quit_to_main_menu_pressed"):
+			in_game_menu_instance.quit_to_main_menu_pressed.connect(_on_in_game_menu_quit_to_main)
+	else:
+		printerr("Game: CRITICAL - InGameMenu.tscn not preloaded!")
+
 
 func _unhandled_input(event: InputEvent):
-	if current_game_roll_state == GameRollState.LOOT_SELECTION:
-		if Input.is_action_just_pressed("cancel_action"): # Escape key
+	if (event is InputEventKey or event is InputEventJoypadButton) and event.is_action_just_pressed("ui_cancel"): # Typically Escape key
+		if current_game_roll_state == GameRollState.PLAYING or \
+		   current_game_roll_state == GameRollState.AWAITING_ANIMATION_COMPLETION:
+			_toggle_in_game_menu()
+			get_viewport().set_input_as_handled()
+		elif current_game_roll_state == GameRollState.PAUSED:
+			# If settings menu is open, let its _unhandled_input handle Escape first.
+			if is_instance_valid(settings_menu_instance) and settings_menu_instance.visible:
+				# settings_menu.gd should handle closing itself and re-enabling in_game_menu_instance buttons
+				pass # Let settings menu handle it
+			elif is_instance_valid(in_game_menu_instance) and in_game_menu_instance.visible:
+				# If only in-game menu is open, Escape resumes game.
+				_on_in_game_menu_resume() 
+				get_viewport().set_input_as_handled()
+		elif current_game_roll_state == GameRollState.LOOT_SELECTION:
 			# Check if HUD's inventory panel is currently visible
 			if is_instance_valid(hud_instance) and \
 			   is_instance_valid(hud_instance.dice_face_scroll_container) and \
@@ -228,6 +318,9 @@ func _process(delta):
 		GameRollState.GAME_OVER:
 			if is_instance_valid(hud_instance): hud_instance.visible = false
 			# SceneUIManager.show_game_over_screen is called in _end_round on loss
+			pass
+		GameRollState.PAUSED:
+			# Game is paused, UI interactions handled by InGameMenu or SettingsMenu
 			pass
 
 
@@ -812,3 +905,97 @@ func _apply_boon_effect(boon_id_string_name: StringName): # Changed to StringNam
 		if current_bm_extra_rolls != extra_max_rolls_boon:
 			extra_max_rolls_boon = current_bm_extra_rolls
 			_update_hud_static_elements() # Ensure HUD updates if max rolls change mid-round due to a boon
+
+func _on_in_game_menu_resume():
+	if current_game_roll_state == GameRollState.PAUSED:
+		if is_instance_valid(in_game_menu_instance): in_game_menu_instance.hide_menu()
+		current_game_roll_state = GameRollState.PLAYING # Or whatever state it was before pausing
+		get_tree().paused = false
+		print("Game: Resumed from in-game menu.")
+
+func _on_in_game_menu_settings():
+	if current_game_roll_state == GameRollState.PAUSED and is_instance_valid(in_game_menu_instance):
+		print("Game: Settings opened from in-game menu.")
+		if not is_instance_valid(settings_menu_instance):
+			if settings_menu_scene:
+				settings_menu_instance = settings_menu_scene.instantiate()
+				# Ensure settings menu is parented correctly, e.g., to ui_canvas or in_game_menu_instance
+				# For simplicity, let's add it to ui_canvas to be on top
+				if is_instance_valid(ui_canvas): ui_canvas.add_child(settings_menu_instance)
+				else: add_child(settings_menu_instance); printerr("Game: ui_canvas not found for settings menu")
+				
+				if settings_menu_instance.has_signal("back_pressed"):
+					settings_menu_instance.back_pressed.connect(_on_settings_menu_closed)
+				else:
+					printerr("Game: SettingsMenu scene is missing 'back_pressed' signal.")
+			else:
+				printerr("Game: settings_menu_scene not preloaded!")
+				return
+
+		if is_instance_valid(settings_menu_instance):
+			if settings_menu_instance.has_method("show_menu"):
+				settings_menu_instance.show_menu()
+			else:
+				settings_menu_instance.show() # Fallback if show_menu doesn't exist
+
+			# Visually indicate that the main pause menu is "behind" the settings
+			if in_game_menu_instance.has_method("disable_buttons_for_settings"):
+				in_game_menu_instance.disable_buttons_for_settings()
+			# Optionally, you could slightly dim or hide the in_game_menu_instance panel.
+			# For now, just disabling buttons.
+
+func _on_settings_menu_closed():
+	print("Game: Settings menu closed.")
+	if is_instance_valid(settings_menu_instance):
+		if settings_menu_instance.has_method("hide_menu"):
+			settings_menu_instance.hide_menu()
+		else:
+			settings_menu_instance.hide()
+
+	if is_instance_valid(in_game_menu_instance) and in_game_menu_instance.visible:
+		if in_game_menu_instance.has_method("enable_buttons_after_settings"):
+			in_game_menu_instance.enable_buttons_after_settings()
+		if in_game_menu_instance.has_method("show_menu"): # Ensure in_game_menu is still properly shown
+			in_game_menu_instance.show_menu()
+		else:
+			in_game_menu_instance.show()
+
+func _on_in_game_menu_retry():
+	if current_game_roll_state == GameRollState.PAUSED:
+		if is_instance_valid(in_game_menu_instance): in_game_menu_instance.hide_menu()
+		get_tree().paused = false
+		current_game_roll_state = GameRollState.INITIALIZING_GAME # This will trigger a full reset
+		print("Game: Retry triggered from in-game menu.")
+		# Any other cleanup specific to retry if needed before _initialize_new_game_run_setup is called by state machine
+
+func _on_in_game_menu_quit_to_main():
+	if current_game_roll_state == GameRollState.PAUSED:
+		if is_instance_valid(in_game_menu_instance): in_game_menu_instance.hide_menu()
+		if is_instance_valid(hud_instance): hud_instance.visible = false
+		get_tree().paused = false
+		current_game_roll_state = GameRollState.MENU
+		SceneUIManager.show_main_menu()
+		print("Game: Quit to Main Menu triggered from in-game menu.")
+
+func _toggle_in_game_menu():
+	if current_game_roll_state == GameRollState.PAUSED:
+		# If settings are open, closing them should return to the pause menu, not directly to game.
+		if is_instance_valid(settings_menu_instance) and settings_menu_instance.visible:
+			_on_settings_menu_closed() # This should make the pause menu active again
+		else:
+			_on_in_game_menu_resume() # Resume game if only pause menu is open
+	elif current_game_roll_state == GameRollState.PLAYING or \
+		 current_game_roll_state == GameRollState.AWAITING_ANIMATION_COMPLETION or \
+		 current_game_roll_state == GameRollState.LOOT_SELECTION: # Allow pausing during loot selection too
+		
+		# Store previous state if needed, e.g. if AWAITING_ANIMATION_COMPLETION needs special handling on resume
+		# For now, resuming always goes to PLAYING state if not game over etc.
+		
+		current_game_roll_state = GameRollState.PAUSED
+		if is_instance_valid(in_game_menu_instance):
+			if in_game_menu_instance.has_method("show_menu"): in_game_menu_instance.show_menu()
+			else: in_game_menu_instance.show()
+		get_tree().paused = true
+		print("Game: In-game menu opened. Game Paused.")
+	else:
+		print("Game: Cannot open in-game menu from state: ", GameRollState.keys()[current_game_roll_state])

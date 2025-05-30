@@ -1,0 +1,373 @@
+[gd_scene load_steps=3 format=3 uid="uid://dj4q2b8g7k1yw"]
+
+[ext_resource type="Theme" uid="uid://s6n6onv1nmd5" path="res://resources/themes/quantum_dice_theme.tres" id="1_60h5o"]
+[ext_resource type="Script" path="res://scenes/ui/AmbientSoundPanel.gd" id="2_sound"]
+
+[node name="AmbientSoundPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(500, 500)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -250.0
+offset_right = 250.0
+offset_bottom = 250.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_60h5o")
+script = ExtResource("2_sound")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Ambient Sound Controls"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="PresetsContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="PresetLabel" type="Label" parent="MarginContainer/VBoxContainer/PresetsContainer"]
+layout_mode = 2
+text = "Presets:"
+
+[node name="CosmicButton" type="Button" parent="MarginContainer/VBoxContainer/PresetsContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Cosmic"
+
+[node name="MysticalButton" type="Button" parent="MarginContainer/VBoxContainer/PresetsContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Mystical"
+
+[node name="QuantumButton" type="Button" parent="MarginContainer/VBoxContainer/PresetsContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Quantum"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ParametersContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+
+[node name="DroneSection" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Drone"
+
+[node name="Grid" type="GridContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection"]
+layout_mode = 2
+columns = 3
+
+[node name="FreqLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+layout_mode = 2
+text = "Frequency"
+
+[node name="FreqSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 20.0
+max_value = 200.0
+value = 55.0
+
+[node name="FreqValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "55.0 Hz"
+
+[node name="ModDepthLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+layout_mode = 2
+text = "Mod Depth"
+
+[node name="ModDepthSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.1
+
+[node name="ModDepthValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0.10"
+
+[node name="ModRateLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+layout_mode = 2
+text = "Mod Rate"
+
+[node name="ModRateSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 2.0
+step = 0.01
+value = 0.1
+
+[node name="ModRateValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0.10 Hz"
+
+[node name="AmplitudeLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+layout_mode = 2
+text = "Amplitude"
+
+[node name="DroneAmpSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.3
+
+[node name="DroneAmpValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0.30"
+
+[node name="AttackTimeLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+layout_mode = 2
+text = "Attack Time"
+
+[node name="AttackTimeSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.01
+max_value = 10.0 # Long attack times
+step = 0.01
+value = 2.0
+
+[node name="AttackTimeValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "2.00s"
+
+[node name="ReleaseTimeLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+layout_mode = 2
+text = "Release Time"
+
+[node name="ReleaseTimeSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.01
+max_value = 10.0 # Long release times
+step = 0.01
+value = 5.0
+
+[node name="ReleaseTimeValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "5.00s"
+
+[node name="NoiseSection" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Noise"
+
+[node name="Grid" type="GridContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection"]
+layout_mode = 2
+columns = 3
+
+[node name="CutoffLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection/Grid"]
+layout_mode = 2
+text = "Cutoff"
+
+[node name="CutoffSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 100.0
+max_value = 5000.0
+value = 1000.0
+
+[node name="CutoffValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "1000 Hz"
+
+[node name="ResonanceLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection/Grid"]
+layout_mode = 2
+text = "Resonance"
+
+[node name="ResonanceSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.7
+
+[node name="ResonanceValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0.70"
+
+[node name="AmplitudeLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection/Grid"]
+layout_mode = 2
+text = "Amplitude"
+
+[node name="NoiseAmpSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.15
+
+[node name="NoiseAmpValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0.15"
+
+[node name="PulseSection" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Pulse"
+
+[node name="Grid" type="GridContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection"]
+layout_mode = 2
+columns = 3
+
+[node name="FreqLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+layout_mode = 2
+text = "Frequency"
+
+[node name="PulseFreqSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 50.0
+max_value = 500.0
+value = 220.0
+
+[node name="PulseFreqValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "220.0 Hz"
+
+[node name="WidthLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+layout_mode = 2
+text = "Width"
+
+[node name="WidthSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.5
+
+[node name="WidthValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0.50"
+
+[node name="IntervalMinLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+layout_mode = 2
+text = "Min Interval"
+
+[node name="IntervalMinSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 5.0
+step = 0.1
+value = 2.0
+
+[node name="IntervalMinValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "2.0s"
+
+[node name="IntervalMaxLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+layout_mode = 2
+text = "Max Interval"
+
+[node name="IntervalMaxSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 2.0
+max_value = 10.0
+step = 0.1
+value = 5.0
+
+[node name="IntervalMaxValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "5.0s"
+
+[node name="AmplitudeLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+layout_mode = 2
+text = "Amplitude"
+
+[node name="PulseAmpSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.2
+
+[node name="PulseAmpValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0.20"
+
+[node name="ButtonsContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="RandomizeButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonsContainer"]
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 2
+text = "Randomize"
+
+[node name="ToggleButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonsContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 2
+toggle_mode = true
+text = "Stop"
+
+[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonsContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 2
+text = "Back" 

@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" uid="uid://31yi0q5qj6vs" path="res://scenes/ui/PlaybackSpeedButton.tscn" id="6_quvg6"]
 [ext_resource type="PackedScene" uid="uid://dptegvnfmc884" path="res://scenes/ui/AutoRollButton.tscn" id="7_x1h30"]
 [ext_resource type="Script" path="res://scripts/ui/TrackManager.gd" id="8_hcnr4"]
+[ext_resource type="Texture2D" uid="uid://cscun6yak607k" path="res://assets/sprites/X_roman.png" id="9_placeholder_gear"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_rtbff"]
 shader = ExtResource("4_p3a0w")
@@ -51,16 +52,6 @@ shader_parameter/source_placeholder_main = Color(1, 1, 1, 1)
 shader_parameter/source_placeholder_accent = Color(1, 0, 0, 1)
 shader_parameter/color_match_tolerance = 0.05
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_egsj1"]
-shader = ExtResource("4_p3a0w")
-shader_parameter/palette_main_color = Color(0.93, 0.87, 0.8, 1)
-shader_parameter/palette_background_color = Color(0.1, 0.08, 0.12, 1)
-shader_parameter/palette_accent_color = Color(0.9, 0.25, 0.2, 1)
-shader_parameter/source_placeholder_bg = Color(0, 0, 0, 1)
-shader_parameter/source_placeholder_main = Color(1, 1, 1, 1)
-shader_parameter/source_placeholder_accent = Color(1, 0, 0, 1)
-shader_parameter/color_match_tolerance = 0.05
-
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_h04y7"]
 shader = ExtResource("4_p3a0w")
 shader_parameter/palette_main_color = Color(0.93, 0.87, 0.8, 1)
@@ -87,6 +78,7 @@ anchors_preset = 0
 script = ExtResource("1_ba2h4")
 
 [node name="LevelLabel" type="Label" parent="."]
+unique_name_in_owner = true
 material = SubResource("ShaderMaterial_rtbff")
 custom_minimum_size = Vector2(40, 640)
 layout_mode = 0
@@ -105,6 +97,7 @@ script = ExtResource("5_j4576")
 metadata/_edit_lock_ = true
 
 [node name="RollsLabel" type="Label" parent="."]
+unique_name_in_owner = true
 material = SubResource("ShaderMaterial_3kbog")
 custom_minimum_size = Vector2(640, 80)
 layout_mode = 0
@@ -122,6 +115,7 @@ script = ExtResource("5_j4576")
 metadata/_edit_lock_ = true
 
 [node name="ScoreLabel" type="Label" parent="."]
+unique_name_in_owner = true
 material = SubResource("ShaderMaterial_f3jqd")
 custom_minimum_size = Vector2(640, 80)
 layout_mode = 0
@@ -138,6 +132,7 @@ script = ExtResource("5_j4576")
 metadata/_edit_lock_ = true
 
 [node name="TargetLabel" type="Label" parent="."]
+unique_name_in_owner = true
 material = SubResource("ShaderMaterial_h4fpi")
 custom_minimum_size = Vector2(40, 640)
 layout_mode = 0
@@ -155,24 +150,31 @@ autowrap_mode = 1
 script = ExtResource("5_j4576")
 metadata/_edit_lock_ = true
 
-[node name="BossIndicatorLabel" type="Label" parent="."]
-material = SubResource("ShaderMaterial_egsj1")
+[node name="BossIndicatorPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = 12
+anchors_preset = 7
+anchor_left = 0.5
 anchor_top = 1.0
-anchor_right = 1.0
+anchor_right = 0.5
 anchor_bottom = 1.0
-offset_top = 610.0
+offset_top = 60.0
 offset_right = 640.0
-offset_bottom = 636.0
+offset_bottom = 100.0
 grow_horizontal = 2
 grow_vertical = 0
+
+[node name="BossIndicatorLabel" type="Label" parent="BossIndicatorPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.8, 0.2, 1)
+theme_override_font_sizes/font_size = 20
 text = "BOSS INCOMING!"
 horizontal_alignment = 1
 vertical_alignment = 1
-script = ExtResource("5_j4576")
 
 [node name="SynergyNotificationLabel" type="Label" parent="."]
+unique_name_in_owner = true
 material = SubResource("ShaderMaterial_h04y7")
 custom_minimum_size = Vector2(320, 80)
 layout_mode = 0
@@ -190,13 +192,8 @@ autowrap_mode = 3
 script = ExtResource("5_j4576")
 metadata/_edit_lock_ = true
 
-[node name="RollHistoryDisplayContainer" type="Control" parent="."]
-layout_mode = 3
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
-
 [node name="DiceFaceScrollContainer" type="ScrollContainer" parent="."]
+unique_name_in_owner = true
 z_index = 20
 custom_minimum_size = Vector2(320, 240)
 layout_mode = 0
@@ -208,16 +205,16 @@ mouse_filter = 0
 horizontal_scroll_mode = 0
 metadata/_edit_lock_ = true
 
-[node name="dice_face_display_container" type="GridContainer" parent="DiceFaceScrollContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="DiceFaceScrollContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 theme = ExtResource("2_2e113")
-theme_override_constants/h_separation = 0
-theme_override_constants/v_separation = 0
-columns = 8
+theme_override_constants/separation = 5
 
 [node name="InventoryToggleButton" type="TextureButton" parent="."]
+unique_name_in_owner = true
 modulate = Color(1, 1, 1, 0.380392)
 z_index = 1
 custom_minimum_size = Vector2(80, 80)
@@ -233,6 +230,7 @@ script = ExtResource("5_j4576")
 metadata/_edit_lock_ = true
 
 [node name="PlaybackSpeedButton" parent="." instance=ExtResource("6_quvg6")]
+unique_name_in_owner = true
 material = SubResource("ShaderMaterial_jkn7w")
 layout_mode = 1
 offset_right = 600.0
@@ -242,6 +240,7 @@ grow_vertical = 1
 metadata/_edit_lock_ = true
 
 [node name="AutoRollButton" parent="." instance=ExtResource("7_x1h30")]
+unique_name_in_owner = true
 layout_mode = 0
 offset_left = 560.0
 offset_top = 560.0
@@ -249,7 +248,20 @@ offset_right = 600.0
 offset_bottom = 600.0
 
 [node name="LogicTrackDisplay" type="Control" parent="."]
+unique_name_in_owner = true
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("8_hcnr4")
+
+[node name="GameMenuButton" type="TextureButton" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 590.0
+offset_top = 10.0
+offset_right = 630.0
+offset_bottom = 50.0
+tooltip_text = "Game Menu"
+texture_normal = ExtResource("9_placeholder_gear")
+ignore_texture_size = true
+stretch_mode = 5

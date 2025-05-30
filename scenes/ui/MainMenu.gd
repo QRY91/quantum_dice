@@ -4,10 +4,14 @@ extends Control
 
 signal start_game_pressed
 
-@onready var start_button: Button = $StartButton 
+@onready var start_button: Button = $VBoxContainer/StartButton 
+@onready var settings_button: Button = %SettingsButton
 @onready var high_score_label: Label = $HighScoreLabel
 @onready var title_label: Label = $TitleLabel
 @onready var background_rect: ColorRect = $BackgroundRect
+
+var settings_menu_scene = preload("res://scenes/ui/settings_menu.tscn")
+var settings_menu: Control
 
 var title_original_pos: Vector2
 var title_animation_time: float = 0.0
@@ -16,13 +20,18 @@ const TITLE_FLOAT_AMOUNT: float = 10.0
 
 func _ready():
 	if is_instance_valid(start_button):
-		start_button.pressed.connect(Callable(self, "_on_start_button_pressed"))
+		start_button.pressed.connect(_on_start_button_pressed)
 	else:
 		printerr("MainMenu.gd: StartButton node not found!")
+		
+	if is_instance_valid(settings_button):
+		settings_button.pressed.connect(_on_settings_button_pressed)
+	else:
+		printerr("MainMenu.gd: SettingsButton node not found!")
 
 	# Connect to ScoreManager's signal to update high score if it changes while menu is visible
 	if ScoreManager.has_signal("high_score_updated"):
-		ScoreManager.high_score_updated.connect(Callable(self, "_on_high_score_updated"))
+		ScoreManager.high_score_updated.connect(_on_high_score_updated)
 	
 	# Initial display of high score
 	_update_high_score_display()
@@ -55,6 +64,23 @@ func _on_start_button_pressed():
 	emit_signal("start_game_pressed")
 	print("MainMenu: Start Game button pressed, emitting signal.")
 
+func _on_settings_button_pressed():
+	if not settings_menu:
+		settings_menu = settings_menu_scene.instantiate()
+		add_child(settings_menu)
+		settings_menu.back_pressed.connect(_on_settings_back)
+	settings_menu.show_menu()
+	# Disable main menu buttons while in settings
+	start_button.disabled = true
+	settings_button.disabled = true
+
+func _on_settings_back():
+	if settings_menu:
+		settings_menu.hide_menu()
+	# Re-enable main menu buttons
+	start_button.disabled = false
+	settings_button.disabled = false
+
 func show_menu():
 	visible = true
 	if is_instance_valid(start_button):
@@ -67,6 +93,8 @@ func show_menu():
 
 func hide_menu():
 	visible = false
+	if settings_menu:
+		settings_menu.hide_menu()
 	print("MainMenu: hide_menu() called.")
 
 func _update_high_score_display():

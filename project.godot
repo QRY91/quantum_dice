@@ -26,6 +26,7 @@ PlayerDiceManager="*res://scripts/managers/PlayerDiceManager.gd"
 SceneUIManager="*res://scripts/managers/SceneUIManager.gd"
 PaletteManager="*res://scripts/managers/PaletteManager.gd"
 GlobalEnums="*res://scripts/autoloads/GlobalEnums.gd"
+AudioManager="*res://scripts/autoloads/AudioManager.gd"
 
 [display]
 
