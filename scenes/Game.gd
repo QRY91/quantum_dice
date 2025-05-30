@@ -80,9 +80,11 @@ var auto_roll_enabled: bool = false
 
 # --- In-Game Menu ---
 var in_game_menu_scene: PackedScene = preload("res://scenes/ui/InGameMenu.tscn")
-var in_game_menu_instance: Control
-var settings_menu_scene: PackedScene = preload("res://scenes/ui/settings_menu.tscn") # Preload settings menu
-var settings_menu_instance: Control # Instance for settings menu
+var in_game_menu_instance: Control # This will be the Control node with the script
+var in_game_menu_canvas_layer_root: CanvasLayer # This will be the root CanvasLayer node of the scene
+var settings_menu_scene: PackedScene = preload("res://scenes/ui/settings_menu.tscn")
+var settings_menu_instance: Control # This will be the Control node with the script
+var settings_menu_canvas_layer_root: CanvasLayer # This will be the root CanvasLayer node of the scene
 
 
 func _ready():
@@ -203,6 +205,10 @@ func _ready():
 		else:
 			printerr("Game: HUD instance does not have 'game_menu_button_pressed' signal. Gear button might not work.")
 
+		# Set TrackManager mouse filter to pass so it doesn't block UI behind it by default
+		if is_instance_valid(hud_instance.track_manager):
+			hud_instance.track_manager.mouse_filter = Control.MOUSE_FILTER_PASS
+
 	else: 
 		printerr("ERROR: HUD.tscn not preloaded!")
 	
@@ -210,11 +216,6 @@ func _ready():
 	SceneUIManager.main_menu_start_game_pressed.connect(_on_main_menu_start_game)
 	SceneUIManager.loot_screen_loot_selected.connect(_on_loot_selected)
 	SceneUIManager.loot_screen_skipped.connect(_on_loot_screen_closed)
-	# NEW: Connect to the assumed signal from SceneUIManager for inventory requests from LootScreen
-	if SceneUIManager.has_signal("loot_screen_inventory_requested"):
-		SceneUIManager.loot_screen_inventory_requested.connect(_on_loot_screen_inventory_requested)
-	else:
-		printerr("Game: SceneUIManager does not have 'loot_screen_inventory_requested' signal. Loot screen inventory toggle may not work.")
 	SceneUIManager.game_over_retry_pressed.connect(_on_game_over_retry_pressed)
 	SceneUIManager.game_over_main_menu_pressed.connect(_on_game_over_main_menu_pressed)
 	
@@ -245,21 +246,34 @@ func _ready():
 
 	# --- In-Game Menu Setup ---
 	if in_game_menu_scene:
-		in_game_menu_instance = in_game_menu_scene.instantiate()
-		if is_instance_valid(ui_canvas): ui_canvas.add_child(in_game_menu_instance)
-		else: add_child(in_game_menu_instance); printerr("Game: UICanvas not found for InGameMenu.")
-		in_game_menu_instance.hide() # Start hidden
+		var temp_igm_root = in_game_menu_scene.instantiate()
+		if temp_igm_root is CanvasLayer:
+			in_game_menu_canvas_layer_root = temp_igm_root
+			in_game_menu_instance = in_game_menu_canvas_layer_root.get_node_or_null("InGameMenu")
+			if not is_instance_valid(in_game_menu_instance):
+				printerr("Game: CRITICAL - Could not find 'InGameMenu' Control child in InGameMenu.tscn instance.")
+				in_game_menu_canvas_layer_root.queue_free() # Clean up
+				in_game_menu_canvas_layer_root = null # Ensure it's null if setup failed
+			else: # This else belongs to 'if not is_instance_valid(in_game_menu_instance):'
+				# This entire block is now correctly indented under the else
+				if is_instance_valid(ui_canvas): 
+					ui_canvas.add_child(in_game_menu_canvas_layer_root)
+				else: 
+					add_child(in_game_menu_canvas_layer_root); printerr("Game: UICanvas not found for InGameMenu.")
+				in_game_menu_canvas_layer_root.hide() # Start hidden
 
-		# Connect InGameMenu signals
-		if in_game_menu_instance.has_signal("resume_pressed"):
-			in_game_menu_instance.resume_pressed.connect(_on_in_game_menu_resume)
-		if in_game_menu_instance.has_signal("settings_pressed"):
-			in_game_menu_instance.settings_pressed.connect(_on_in_game_menu_settings)
-		if in_game_menu_instance.has_signal("retry_pressed"):
-			in_game_menu_instance.retry_pressed.connect(_on_in_game_menu_retry)
-		if in_game_menu_instance.has_signal("quit_to_main_menu_pressed"):
-			in_game_menu_instance.quit_to_main_menu_pressed.connect(_on_in_game_menu_quit_to_main)
-	else:
+				# Connect InGameMenu signals from in_game_menu_instance (the Control node)
+				if in_game_menu_instance.has_signal("resume_pressed"):
+					in_game_menu_instance.resume_pressed.connect(_on_in_game_menu_resume)
+				if in_game_menu_instance.has_signal("settings_pressed"):
+					in_game_menu_instance.settings_pressed.connect(_on_in_game_menu_settings)
+				if in_game_menu_instance.has_signal("retry_pressed"):
+					in_game_menu_instance.retry_pressed.connect(_on_in_game_menu_retry)
+				if in_game_menu_instance.has_signal("quit_to_main_menu_pressed"):
+					in_game_menu_instance.quit_to_main_menu_pressed.connect(_on_in_game_menu_quit_to_main)
+		else: # This else belongs to 'if temp_igm_root is CanvasLayer:'
+			printerr("Game: CRITICAL - Instantiated InGameMenu.tscn root is not a CanvasLayer!")
+	else: # This else belongs to 'if in_game_menu_scene:'
 		printerr("Game: CRITICAL - InGameMenu.tscn not preloaded!")
 
 
@@ -271,10 +285,10 @@ func _unhandled_input(event: InputEvent):
 			get_viewport().set_input_as_handled()
 		elif current_game_roll_state == GameRollState.PAUSED:
 			# If settings menu is open, let its _unhandled_input handle Escape first.
-			if is_instance_valid(settings_menu_instance) and settings_menu_instance.visible:
+			if is_instance_valid(settings_menu_canvas_layer_root) and settings_menu_canvas_layer_root.visible:
 				# settings_menu.gd should handle closing itself and re-enabling in_game_menu_instance buttons
 				pass # Let settings menu handle it
-			elif is_instance_valid(in_game_menu_instance) and in_game_menu_instance.visible:
+			elif is_instance_valid(in_game_menu_canvas_layer_root) and in_game_menu_canvas_layer_root.visible:
 				# If only in-game menu is open, Escape resumes game.
 				_on_in_game_menu_resume() 
 				get_viewport().set_input_as_handled()
@@ -314,6 +328,7 @@ func _process(delta):
 		GameRollState.AWAITING_ANIMATION_COMPLETION:
 			if is_instance_valid(roll_button): roll_button.disabled = true
 		GameRollState.LOOT_SELECTION: 
+			if is_instance_valid(hud_instance) and not hud_instance.visible: hud_instance.visible = true
 			pass # Input handled by LootScreen and Game._unhandled_input
 		GameRollState.GAME_OVER:
 			if is_instance_valid(hud_instance): hud_instance.visible = false
@@ -684,20 +699,29 @@ func _prepare_and_show_loot_screen():
 	if not loot_options.is_empty():
 		SceneUIManager.show_loot_screen(loot_options) # SceneUIManager will connect to its signals
 		play_sound(sfx_loot_appears)
+		if is_instance_valid(hud_instance): # Ensure HUD is visible when loot screen appears
+			hud_instance.visible = true
+			# Make individual track slots ignore mouse input
+			if is_instance_valid(hud_instance.track_manager) and hud_instance.track_manager.has_method("get_track_slots_array"):
+				var track_slots_nodes = hud_instance.track_manager.get_track_slots_array() # Assumes this method exists in TrackManager
+				for slot_node in track_slots_nodes:
+					if slot_node is Control:
+						(slot_node as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
 	else:
 		PlayerNotificationSystem.display_message("No loot options available this time.")
 		call_deferred("_start_new_round_setup")
-
-func _on_loot_screen_inventory_requested():
-	print("Game: Loot screen requested inventory to be shown.")
-	if is_instance_valid(hud_instance):
-		hud_instance.set_inventory_visibility(true)
 
 func _on_loot_selected(chosen_glyph: GlyphData):
 	print("Game: Loot selected (via SceneUIManager): ", chosen_glyph.display_name)
 	# Ensure HUD inventory is hidden when loot selection is done
 	if is_instance_valid(hud_instance):
 		hud_instance.set_inventory_visibility(false)
+		# Restore individual track slots mouse input
+		if is_instance_valid(hud_instance.track_manager) and hud_instance.track_manager.has_method("get_track_slots_array"):
+			var track_slots_nodes = hud_instance.track_manager.get_track_slots_array()
+			for slot_node in track_slots_nodes:
+				if slot_node is Control:
+					(slot_node as Control).mouse_filter = Control.MOUSE_FILTER_STOP # Default for Control nodes
 		
 	PlayerDiceManager.add_glyph_to_dice(chosen_glyph)
 	ScoreManager.add_to_total_score(50) # Bonus for selecting loot
@@ -709,6 +733,12 @@ func _on_loot_screen_closed(): # Handles both skip button and Escape key from Lo
 	# Ensure HUD inventory is hidden when loot screen is closed/skipped
 	if is_instance_valid(hud_instance):
 		hud_instance.set_inventory_visibility(false)
+		# Restore individual track slots mouse input
+		if is_instance_valid(hud_instance.track_manager) and hud_instance.track_manager.has_method("get_track_slots_array"):
+			var track_slots_nodes = hud_instance.track_manager.get_track_slots_array()
+			for slot_node in track_slots_nodes:
+				if slot_node is Control:
+					(slot_node as Control).mouse_filter = Control.MOUSE_FILTER_STOP # Default for Control nodes
 		
 	PlayerNotificationSystem.display_message("Loot skipped.")
 	call_deferred("_start_new_round_setup")
@@ -908,7 +938,10 @@ func _apply_boon_effect(boon_id_string_name: StringName): # Changed to StringNam
 
 func _on_in_game_menu_resume():
 	if current_game_roll_state == GameRollState.PAUSED:
-		if is_instance_valid(in_game_menu_instance): in_game_menu_instance.hide_menu()
+		if is_instance_valid(in_game_menu_instance) and in_game_menu_instance.has_method("hide_menu"):
+			in_game_menu_instance.hide_menu()
+		if is_instance_valid(in_game_menu_canvas_layer_root):
+			in_game_menu_canvas_layer_root.hide()
 		current_game_roll_state = GameRollState.PLAYING # Or whatever state it was before pausing
 		get_tree().paused = false
 		print("Game: Resumed from in-game menu.")
@@ -916,85 +949,96 @@ func _on_in_game_menu_resume():
 func _on_in_game_menu_settings():
 	if current_game_roll_state == GameRollState.PAUSED and is_instance_valid(in_game_menu_instance):
 		print("Game: Settings opened from in-game menu.")
+		# Check if the Control node instance is valid, root will be handled if needed
 		if not is_instance_valid(settings_menu_instance):
 			if settings_menu_scene:
-				settings_menu_instance = settings_menu_scene.instantiate()
-				# Ensure settings menu is parented correctly, e.g., to ui_canvas or in_game_menu_instance
-				# For simplicity, let's add it to ui_canvas to be on top
-				if is_instance_valid(ui_canvas): ui_canvas.add_child(settings_menu_instance)
-				else: add_child(settings_menu_instance); printerr("Game: ui_canvas not found for settings menu")
-				
-				if settings_menu_instance.has_signal("back_pressed"):
-					settings_menu_instance.back_pressed.connect(_on_settings_menu_closed)
+				var temp_sm_root = settings_menu_scene.instantiate()
+				if temp_sm_root is CanvasLayer:
+					settings_menu_canvas_layer_root = temp_sm_root
+					settings_menu_instance = settings_menu_canvas_layer_root.get_node_or_null("SettingsMenu")
+					if not is_instance_valid(settings_menu_instance):
+						printerr("Game: CRITICAL - Could not find 'SettingsMenu' Control child in SettingsMenu.tscn instance.")
+						settings_menu_canvas_layer_root.queue_free()
+						settings_menu_canvas_layer_root = null
+						return # Exit if settings menu Control node can't be found
+					else:
+						if is_instance_valid(ui_canvas): ui_canvas.add_child(settings_menu_canvas_layer_root)
+						else: add_child(settings_menu_canvas_layer_root); printerr("Game: ui_canvas not found for settings menu")
+						
+						if settings_menu_instance.has_signal("back_pressed"):
+							settings_menu_instance.back_pressed.connect(_on_settings_menu_closed)
+						else:
+							printerr("Game: SettingsMenu Control instance is missing 'back_pressed' signal.")
 				else:
-					printerr("Game: SettingsMenu scene is missing 'back_pressed' signal.")
+					printerr("Game: CRITICAL - Instantiated SettingsMenu.tscn root is not a CanvasLayer!")
+					return # Exit if scene structure is wrong
 			else:
 				printerr("Game: settings_menu_scene not preloaded!")
 				return
 
-		if is_instance_valid(settings_menu_instance):
+		if is_instance_valid(settings_menu_instance) and is_instance_valid(settings_menu_canvas_layer_root):
 			if settings_menu_instance.has_method("show_menu"):
 				settings_menu_instance.show_menu()
-			else:
-				settings_menu_instance.show() # Fallback if show_menu doesn't exist
+			# Make sure the CanvasLayer root is visible
+			settings_menu_canvas_layer_root.show() 
 
 			# Visually indicate that the main pause menu is "behind" the settings
-			if in_game_menu_instance.has_method("disable_buttons_for_settings"):
+			if is_instance_valid(in_game_menu_instance) and in_game_menu_instance.has_method("disable_buttons_for_settings"):
 				in_game_menu_instance.disable_buttons_for_settings()
-			# Optionally, you could slightly dim or hide the in_game_menu_instance panel.
-			# For now, just disabling buttons.
+		else:
+			printerr("Game: Failed to show settings menu, instance or root is invalid.")
 
 func _on_settings_menu_closed():
 	print("Game: Settings menu closed.")
-	if is_instance_valid(settings_menu_instance):
-		if settings_menu_instance.has_method("hide_menu"):
-			settings_menu_instance.hide_menu()
-		else:
-			settings_menu_instance.hide()
+	if is_instance_valid(settings_menu_instance) and settings_menu_instance.has_method("hide_menu"):
+		settings_menu_instance.hide_menu()
+	if is_instance_valid(settings_menu_canvas_layer_root):
+		settings_menu_canvas_layer_root.hide()
 
-	if is_instance_valid(in_game_menu_instance) and in_game_menu_instance.visible:
+	if is_instance_valid(in_game_menu_instance) and is_instance_valid(in_game_menu_canvas_layer_root) and in_game_menu_canvas_layer_root.visible:
 		if in_game_menu_instance.has_method("enable_buttons_after_settings"):
 			in_game_menu_instance.enable_buttons_after_settings()
-		if in_game_menu_instance.has_method("show_menu"): # Ensure in_game_menu is still properly shown
-			in_game_menu_instance.show_menu()
-		else:
-			in_game_menu_instance.show()
+		# No need to call show_menu on in_game_menu_instance here as its CanvasLayer root should still be visible.
+		# The InGameMenu.gd's show_menu is for internal setup, not global visibility.
 
 func _on_in_game_menu_retry():
 	if current_game_roll_state == GameRollState.PAUSED:
-		if is_instance_valid(in_game_menu_instance): in_game_menu_instance.hide_menu()
+		if is_instance_valid(in_game_menu_instance) and in_game_menu_instance.has_method("hide_menu"):
+			in_game_menu_instance.hide_menu()
+		if is_instance_valid(in_game_menu_canvas_layer_root):
+			in_game_menu_canvas_layer_root.hide()
 		get_tree().paused = false
 		current_game_roll_state = GameRollState.INITIALIZING_GAME # This will trigger a full reset
 		print("Game: Retry triggered from in-game menu.")
-		# Any other cleanup specific to retry if needed before _initialize_new_game_run_setup is called by state machine
 
 func _on_in_game_menu_quit_to_main():
 	if current_game_roll_state == GameRollState.PAUSED:
-		if is_instance_valid(in_game_menu_instance): in_game_menu_instance.hide_menu()
-		if is_instance_valid(hud_instance): hud_instance.visible = false
+		if is_instance_valid(in_game_menu_instance) and in_game_menu_instance.has_method("hide_menu"):
+			in_game_menu_instance.hide_menu()
+		if is_instance_valid(in_game_menu_canvas_layer_root):
+			in_game_menu_canvas_layer_root.hide()
+		if is_instance_valid(hud_instance): hud_instance.visible = false # This is okay, HUD is not CanvasLayer based in this way
 		get_tree().paused = false
 		current_game_roll_state = GameRollState.MENU
 		SceneUIManager.show_main_menu()
-		print("Game: Quit to Main Menu triggered from in-game menu.")
+		print("Game: Quit to Main Menu triggered from in_game menu.")
 
 func _toggle_in_game_menu():
 	if current_game_roll_state == GameRollState.PAUSED:
 		# If settings are open, closing them should return to the pause menu, not directly to game.
-		if is_instance_valid(settings_menu_instance) and settings_menu_instance.visible:
+		if is_instance_valid(settings_menu_canvas_layer_root) and settings_menu_canvas_layer_root.visible:
 			_on_settings_menu_closed() # This should make the pause menu active again
 		else:
 			_on_in_game_menu_resume() # Resume game if only pause menu is open
 	elif current_game_roll_state == GameRollState.PLAYING or \
 		 current_game_roll_state == GameRollState.AWAITING_ANIMATION_COMPLETION or \
-		 current_game_roll_state == GameRollState.LOOT_SELECTION: # Allow pausing during loot selection too
-		
-		# Store previous state if needed, e.g. if AWAITING_ANIMATION_COMPLETION needs special handling on resume
-		# For now, resuming always goes to PLAYING state if not game over etc.
+		 current_game_roll_state == GameRollState.LOOT_SELECTION: 
 		
 		current_game_roll_state = GameRollState.PAUSED
-		if is_instance_valid(in_game_menu_instance):
-			if in_game_menu_instance.has_method("show_menu"): in_game_menu_instance.show_menu()
-			else: in_game_menu_instance.show()
+		if is_instance_valid(in_game_menu_instance) and is_instance_valid(in_game_menu_canvas_layer_root):
+			in_game_menu_canvas_layer_root.show()
+			if in_game_menu_instance.has_method("show_menu"): 
+				in_game_menu_instance.show_menu() # For internal setup of the Control
 		get_tree().paused = true
 		print("Game: In-game menu opened. Game Paused.")
 	else:

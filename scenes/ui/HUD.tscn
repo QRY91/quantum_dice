@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://b4y7wdmde2nco"]
+[gd_scene load_steps=19 format=3 uid="uid://b4y7wdmde2nco"]
 
 [ext_resource type="Script" path="res://scenes/ui/HUD.gd" id="1_ba2h4"]
 [ext_resource type="Theme" uid="uid://s6n6onv1nmd5" path="res://resources/themes/quantum_dice_theme.tres" id="2_2e113"]
@@ -53,6 +53,16 @@ shader_parameter/source_placeholder_accent = Color(1, 0, 0, 1)
 shader_parameter/color_match_tolerance = 0.05
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_h04y7"]
+shader = ExtResource("4_p3a0w")
+shader_parameter/palette_main_color = Color(0.93, 0.87, 0.8, 1)
+shader_parameter/palette_background_color = Color(0.1, 0.08, 0.12, 1)
+shader_parameter/palette_accent_color = Color(0.9, 0.25, 0.2, 1)
+shader_parameter/source_placeholder_bg = Color(0, 0, 0, 1)
+shader_parameter/source_placeholder_main = Color(1, 1, 1, 1)
+shader_parameter/source_placeholder_accent = Color(1, 0, 0, 1)
+shader_parameter/color_match_tolerance = 0.05
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_invbtnplaceholder"]
 shader = ExtResource("4_p3a0w")
 shader_parameter/palette_main_color = Color(0.93, 0.87, 0.8, 1)
 shader_parameter/palette_background_color = Color(0.1, 0.08, 0.12, 1)
@@ -187,7 +197,7 @@ offset_bottom = 249.0
 theme = ExtResource("2_2e113")
 theme_type_variation = &"BodyLabel"
 theme_override_fonts/font = ExtResource("4_qg73b")
-theme_override_font_sizes/font_size = 40
+theme_override_font_sizes/font_size = 20
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
@@ -207,29 +217,31 @@ mouse_filter = 0
 horizontal_scroll_mode = 0
 metadata/_edit_lock_ = true
 
-[node name="VBoxContainer" type="VBoxContainer" parent="DiceFaceScrollContainer"]
+[node name="DiceDisplayGrid" type="GridContainer" parent="DiceFaceScrollContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 theme = ExtResource("2_2e113")
-theme_override_constants/separation = 5
+theme_override_constants/h_separation = 5
+theme_override_constants/v_separation = 5
+columns = 4
 
 [node name="InventoryToggleButton" type="TextureButton" parent="."]
 unique_name_in_owner = true
 modulate = Color(1, 1, 1, 0.380392)
 z_index = 1
+material = SubResource("ShaderMaterial_invbtnplaceholder")
 custom_minimum_size = Vector2(80, 80)
 layout_mode = 0
-offset_left = 480.0
-offset_top = 320.0
-offset_right = 560.0
-offset_bottom = 400.0
+offset_top = 560.0
+offset_right = 80.0
+offset_bottom = 640.0
+toggle_mode = true
 texture_normal = ExtResource("5_01qn3")
 texture_hover = ExtResource("5_01qn3")
 stretch_mode = 3
 script = ExtResource("5_j4576")
-metadata/_edit_lock_ = true
 
 [node name="PlaybackSpeedButton" parent="." instance=ExtResource("6_quvg6")]
 unique_name_in_owner = true

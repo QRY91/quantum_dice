@@ -3,7 +3,11 @@
 [ext_resource type="Theme" uid="uid://s6n6onv1nmd5" path="res://resources/themes/quantum_dice_theme.tres" id="1_60h5o"]
 [ext_resource type="Script" path="res://scenes/ui/AmbientSoundPanel.gd" id="2_sound"]
 
-[node name="AmbientSoundPanel" type="PanelContainer"]
+[node name="AmbientSoundPanelCanvasLayer" type="CanvasLayer"]
+layer = 40
+process_mode = 1 # Node.PROCESS_MODE_ALWAYS
+
+[node name="AmbientSoundPanel" type="PanelContainer" parent="AmbientSoundPanelCanvasLayer"]
 custom_minimum_size = Vector2(500, 500)
 anchors_preset = 8
 anchor_left = 0.5
@@ -19,7 +23,7 @@ grow_vertical = 2
 theme = ExtResource("1_60h5o")
 script = ExtResource("2_sound")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="AmbientSoundPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 10
@@ -30,65 +34,65 @@ theme_override_constants/margin_bottom = 10
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="TitleLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "Ambient Sound Controls"
 horizontal_alignment = 1
 
-[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
 layout_mode = 2
 
-[node name="PresetsContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+[node name="PresetsContainer" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 10
 alignment = 1
 
-[node name="PresetLabel" type="Label" parent="MarginContainer/VBoxContainer/PresetsContainer"]
+[node name="PresetLabel" type="Label" parent="PresetsContainer"]
 layout_mode = 2
 text = "Presets:"
 
-[node name="CosmicButton" type="Button" parent="MarginContainer/VBoxContainer/PresetsContainer"]
+[node name="CosmicButton" type="Button" parent="PresetsContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Cosmic"
 
-[node name="MysticalButton" type="Button" parent="MarginContainer/VBoxContainer/PresetsContainer"]
+[node name="MysticalButton" type="Button" parent="PresetsContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Mystical"
 
-[node name="QuantumButton" type="Button" parent="MarginContainer/VBoxContainer/PresetsContainer"]
+[node name="QuantumButton" type="Button" parent="PresetsContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Quantum"
 
-[node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer"]
+[node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="ParametersContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer"]
+[node name="ParametersContainer" type="VBoxContainer" parent="ScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 20
 
-[node name="DroneSection" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer"]
+[node name="DroneSection" type="VBoxContainer" parent="ParametersContainer"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection"]
+[node name="Label" type="Label" parent="DroneSection"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Drone"
 
-[node name="Grid" type="GridContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection"]
+[node name="Grid" type="GridContainer" parent="DroneSection"]
 layout_mode = 2
 columns = 3
 
-[node name="FreqLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+[node name="FreqLabel" type="Label" parent="Grid"]
 layout_mode = 2
 text = "Frequency"
 
-[node name="FreqSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+[node name="FreqSlider" type="HSlider" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -96,16 +100,16 @@ min_value = 20.0
 max_value = 200.0
 value = 55.0
 
-[node name="FreqValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+[node name="FreqValue" type="Label" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "55.0 Hz"
 
-[node name="ModDepthLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+[node name="ModDepthLabel" type="Label" parent="Grid"]
 layout_mode = 2
 text = "Mod Depth"
 
-[node name="ModDepthSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+[node name="ModDepthSlider" type="HSlider" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -113,16 +117,16 @@ max_value = 1.0
 step = 0.01
 value = 0.1
 
-[node name="ModDepthValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+[node name="ModDepthValue" type="Label" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "0.10"
 
-[node name="ModRateLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+[node name="ModRateLabel" type="Label" parent="Grid"]
 layout_mode = 2
 text = "Mod Rate"
 
-[node name="ModRateSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+[node name="ModRateSlider" type="HSlider" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -130,16 +134,16 @@ max_value = 2.0
 step = 0.01
 value = 0.1
 
-[node name="ModRateValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+[node name="ModRateValue" type="Label" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "0.10 Hz"
 
-[node name="AmplitudeLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+[node name="AmplitudeLabel" type="Label" parent="Grid"]
 layout_mode = 2
 text = "Amplitude"
 
-[node name="DroneAmpSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+[node name="DroneAmpSlider" type="HSlider" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -147,16 +151,16 @@ max_value = 1.0
 step = 0.01
 value = 0.3
 
-[node name="DroneAmpValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+[node name="DroneAmpValue" type="Label" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "0.30"
 
-[node name="AttackTimeLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+[node name="AttackTimeLabel" type="Label" parent="Grid"]
 layout_mode = 2
 text = "Attack Time"
 
-[node name="AttackTimeSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+[node name="AttackTimeSlider" type="HSlider" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -165,16 +169,16 @@ max_value = 10.0 # Long attack times
 step = 0.01
 value = 2.0
 
-[node name="AttackTimeValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+[node name="AttackTimeValue" type="Label" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "2.00s"
 
-[node name="ReleaseTimeLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+[node name="ReleaseTimeLabel" type="Label" parent="Grid"]
 layout_mode = 2
 text = "Release Time"
 
-[node name="ReleaseTimeSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+[node name="ReleaseTimeSlider" type="HSlider" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -183,28 +187,28 @@ max_value = 10.0 # Long release times
 step = 0.01
 value = 5.0
 
-[node name="ReleaseTimeValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/DroneSection/Grid"]
+[node name="ReleaseTimeValue" type="Label" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "5.00s"
 
-[node name="NoiseSection" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer"]
+[node name="NoiseSection" type="VBoxContainer" parent="ParametersContainer"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection"]
+[node name="Label" type="Label" parent="NoiseSection"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Noise"
 
-[node name="Grid" type="GridContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection"]
+[node name="Grid" type="GridContainer" parent="NoiseSection"]
 layout_mode = 2
 columns = 3
 
-[node name="CutoffLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection/Grid"]
+[node name="CutoffLabel" type="Label" parent="Grid"]
 layout_mode = 2
 text = "Cutoff"
 
-[node name="CutoffSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection/Grid"]
+[node name="CutoffSlider" type="HSlider" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -212,16 +216,16 @@ min_value = 100.0
 max_value = 5000.0
 value = 1000.0
 
-[node name="CutoffValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection/Grid"]
+[node name="CutoffValue" type="Label" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "1000 Hz"
 
-[node name="ResonanceLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection/Grid"]
+[node name="ResonanceLabel" type="Label" parent="Grid"]
 layout_mode = 2
 text = "Resonance"
 
-[node name="ResonanceSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection/Grid"]
+[node name="ResonanceSlider" type="HSlider" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -229,16 +233,16 @@ max_value = 1.0
 step = 0.01
 value = 0.7
 
-[node name="ResonanceValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection/Grid"]
+[node name="ResonanceValue" type="Label" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "0.70"
 
-[node name="AmplitudeLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection/Grid"]
+[node name="AmplitudeLabel" type="Label" parent="Grid"]
 layout_mode = 2
 text = "Amplitude"
 
-[node name="NoiseAmpSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection/Grid"]
+[node name="NoiseAmpSlider" type="HSlider" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -246,28 +250,28 @@ max_value = 1.0
 step = 0.01
 value = 0.15
 
-[node name="NoiseAmpValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/NoiseSection/Grid"]
+[node name="NoiseAmpValue" type="Label" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "0.15"
 
-[node name="PulseSection" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer"]
+[node name="PulseSection" type="VBoxContainer" parent="ParametersContainer"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection"]
+[node name="Label" type="Label" parent="PulseSection"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Pulse"
 
-[node name="Grid" type="GridContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection"]
+[node name="Grid" type="GridContainer" parent="PulseSection"]
 layout_mode = 2
 columns = 3
 
-[node name="FreqLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+[node name="FreqLabel" type="Label" parent="Grid"]
 layout_mode = 2
 text = "Frequency"
 
-[node name="PulseFreqSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+[node name="PulseFreqSlider" type="HSlider" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -275,16 +279,16 @@ min_value = 50.0
 max_value = 500.0
 value = 220.0
 
-[node name="PulseFreqValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+[node name="PulseFreqValue" type="Label" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "220.0 Hz"
 
-[node name="WidthLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+[node name="WidthLabel" type="Label" parent="Grid"]
 layout_mode = 2
 text = "Width"
 
-[node name="WidthSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+[node name="WidthSlider" type="HSlider" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -292,16 +296,16 @@ max_value = 1.0
 step = 0.01
 value = 0.5
 
-[node name="WidthValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+[node name="WidthValue" type="Label" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "0.50"
 
-[node name="IntervalMinLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+[node name="IntervalMinLabel" type="Label" parent="Grid"]
 layout_mode = 2
 text = "Min Interval"
 
-[node name="IntervalMinSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+[node name="IntervalMinSlider" type="HSlider" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -309,16 +313,16 @@ max_value = 5.0
 step = 0.1
 value = 2.0
 
-[node name="IntervalMinValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+[node name="IntervalMinValue" type="Label" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "2.0s"
 
-[node name="IntervalMaxLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+[node name="IntervalMaxLabel" type="Label" parent="Grid"]
 layout_mode = 2
 text = "Max Interval"
 
-[node name="IntervalMaxSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+[node name="IntervalMaxSlider" type="HSlider" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -327,16 +331,16 @@ max_value = 10.0
 step = 0.1
 value = 5.0
 
-[node name="IntervalMaxValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+[node name="IntervalMaxValue" type="Label" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "5.0s"
 
-[node name="AmplitudeLabel" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+[node name="AmplitudeLabel" type="Label" parent="Grid"]
 layout_mode = 2
 text = "Amplitude"
 
-[node name="PulseAmpSlider" type="HSlider" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+[node name="PulseAmpSlider" type="HSlider" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -344,29 +348,29 @@ max_value = 1.0
 step = 0.01
 value = 0.2
 
-[node name="PulseAmpValue" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/ParametersContainer/PulseSection/Grid"]
+[node name="PulseAmpValue" type="Label" parent="Grid"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "0.20"
 
-[node name="ButtonsContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+[node name="ButtonsContainer" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 20
 alignment = 1
 
-[node name="RandomizeButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonsContainer"]
+[node name="RandomizeButton" type="Button" parent="ButtonsContainer"]
 custom_minimum_size = Vector2(120, 40)
 layout_mode = 2
 text = "Randomize"
 
-[node name="ToggleButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonsContainer"]
+[node name="ToggleButton" type="Button" parent="ButtonsContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 40)
 layout_mode = 2
 toggle_mode = true
 text = "Stop"
 
-[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/ButtonsContainer"]
+[node name="BackButton" type="Button" parent="ButtonsContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 40)
 layout_mode = 2

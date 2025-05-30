@@ -93,4 +93,22 @@ func hide_menu():
 	if palette_swapper:
 		palette_swapper.hide()
 	if ambient_sound_panel:
-		ambient_sound_panel.hide() 
+		ambient_sound_panel.hide()
+
+func _unhandled_input(event: InputEvent):
+	if not visible or not event.is_action_pressed("ui_cancel"):
+		return
+
+	if is_instance_valid(palette_swapper) and palette_swapper.visible:
+		_on_palette_swapper_back()
+		get_viewport().set_input_as_handled()
+		return
+
+	if is_instance_valid(ambient_sound_panel) and ambient_sound_panel.visible:
+		_on_ambient_sound_panel_back()
+		get_viewport().set_input_as_handled()
+		return
+	
+	# If no sub-panel handled it, then the main settings back action is triggered
+	_on_back_button_pressed()
+	get_viewport().set_input_as_handled() 

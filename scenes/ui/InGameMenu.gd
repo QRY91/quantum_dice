@@ -1,4 +1,4 @@
-extends Control
+extends CanvasLayer
 
 signal resume_pressed
 signal settings_pressed

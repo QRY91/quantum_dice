@@ -142,6 +142,9 @@ func get_track_slot_by_index(index: int) -> Node: # Return type Node for flexibi
 	printerr("TrackManager: get_track_slot_by_index - Index %d out of bounds." % index)
 	return null
 
+func get_track_slots_array() -> Array[Node]: # New getter
+	return track_slots
+
 
 # You might also need a way to find a slot by the GlyphData it contains if the index isn't readily available
 # func get_track_slot_by_glyph_id(glyph_id: String) -> Node:

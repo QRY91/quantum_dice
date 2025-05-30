@@ -6,7 +6,10 @@
 [ext_resource type="Texture2D" uid="uid://dphoo1xfctjvi" path="res://assets/sprites/inventory.png" id="4_xv06a"]
 [ext_resource type="Texture2D" uid="uid://cscun6yak607k" path="res://assets/sprites/X_roman.png" id="5_j0lxq"]
 
-[node name="LootScreen" type="Control"]
+[node name="LootScreenCanvasLayer" type="CanvasLayer"]
+layer = 10
+
+[node name="LootScreenCanvasLayer@LootScreen" type="Control" parent="."]
 z_index = 5
 layout_mode = 3
 anchors_preset = 15
@@ -16,7 +19,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_kgc8u")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="ColorRect" parent="LootScreenCanvasLayer@LootScreen"]
 modulate = Color(0, 0, 0, 0.937255)
 layout_mode = 1
 anchors_preset = 15
@@ -25,7 +28,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="TitleLabel" type="Label" parent="."]
+[node name="TitleLabel" type="Label" parent="LootScreenCanvasLayer@LootScreen"]
 layout_mode = 0
 offset_right = 638.0
 offset_bottom = 66.0
@@ -36,7 +39,7 @@ text = "Choose a New Quantum Face!"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="LootOptionsContainer" type="HBoxContainer" parent="."]
+[node name="LootOptionsContainer" type="HBoxContainer" parent="LootScreenCanvasLayer@LootScreen"]
 custom_minimum_size = Vector2(320, 240)
 layout_mode = 1
 anchors_preset = 14
@@ -47,7 +50,7 @@ grow_horizontal = 2
 grow_vertical = 2
 alignment = 1
 
-[node name="HelpLabel" type="Label" parent="."]
+[node name="HelpLabel" type="Label" parent="LootScreenCanvasLayer@LootScreen"]
 custom_minimum_size = Vector2(640, 80)
 layout_mode = 0
 offset_top = 560.0
@@ -60,25 +63,24 @@ text = "Select a face and press Confirm"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="InventoryToggleButton" type="TextureButton" parent="."]
+[node name="InventoryToggleButton" type="TextureButton" parent="LootScreenCanvasLayer@LootScreen"]
 modulate = Color(1, 1, 1, 0.380392)
 z_index = 1
 custom_minimum_size = Vector2(80, 80)
 layout_mode = 0
-offset_left = 480.0
-offset_top = 320.0
-offset_right = 560.0
-offset_bottom = 400.0
+offset_top = 560.0
+offset_right = 80.0
+offset_bottom = 640.0
 texture_normal = ExtResource("4_xv06a")
 texture_hover = ExtResource("4_xv06a")
 stretch_mode = 3
-metadata/_edit_lock_ = true
 
-[node name="SkipButton" type="TextureButton" parent="."]
+[node name="SkipButton" type="TextureButton" parent="LootScreenCanvasLayer@LootScreen"]
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 0
-offset_top = 560.0
-offset_right = 40.0
-offset_bottom = 600.0
+offset_left = 299.0
+offset_top = 506.0
+offset_right = 339.0
+offset_bottom = 546.0
 texture_normal = ExtResource("5_j0lxq")
 stretch_mode = 5

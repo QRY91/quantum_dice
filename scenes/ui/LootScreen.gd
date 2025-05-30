@@ -4,12 +4,10 @@ extends Control
 signal loot_selected(chosen_glyph: GlyphData)
 signal loot_screen_closed 
 signal skip_loot_pressed
-signal request_inventory_panel_show
 
 @onready var title_label: Label = $TitleLabel
 @onready var loot_options_container: HBoxContainer = $LootOptionsContainer
 @onready var skip_button: TextureButton = $SkipButton
-@onready var inventory_toggle_button: TextureButton = $InventoryToggleButton
 
 var loot_glyphs_data: Array[GlyphData] = []
 var selected_index: int = 0
@@ -31,11 +29,6 @@ func _ready():
 		skip_button.pressed.connect(_on_internal_skip_button_pressed)
 	else:
 		printerr("LootScreen: SkipButton node not found!")
-	
-	if is_instance_valid(inventory_toggle_button):
-		inventory_toggle_button.pressed.connect(_on_inventory_toggle_button_pressed)
-	else:
-		printerr("LootScreen: InventoryToggleButton node not found!")
 		
 	if is_instance_valid(loot_options_container):
 		# Example: Add some separation between loot items in the HBoxContainer
@@ -117,9 +110,6 @@ func display_loot_options(options: Array[GlyphData]):
 		loot_options_container.add_child(option_button_container)
 		loot_option_buttons.append(option_button_container)
 
-	if is_instance_valid(inventory_toggle_button):
-		inventory_toggle_button.visible = true
-		
 	_update_selection_visuals()
 	show()
 	if not loot_option_buttons.is_empty():
@@ -188,15 +178,7 @@ func _on_internal_skip_button_pressed():
 	emit_signal("skip_loot_pressed")
 	_cleanup_and_hide()
 
-func _on_inventory_toggle_button_pressed():
-	print("LootScreen: Inventory toggle button pressed.")
-	emit_signal("request_inventory_panel_show")
-	# The loot screen itself remains open. Game.gd will show the inventory panel.
-
 func _cleanup_and_hide():
-	# Hide inventory button when loot screen is about to hide
-	if is_instance_valid(inventory_toggle_button):
-		inventory_toggle_button.visible = false
 	hide()
 	# Optionally emit loot_screen_closed if other systems need a generic close signal
 	# emit_signal("loot_screen_closed") # Game.gd's _on_loot_screen_closed might still be useful for generic cleanup

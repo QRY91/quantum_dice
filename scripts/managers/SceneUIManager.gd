@@ -48,9 +48,24 @@ func _ensure_scenes_instantiated():
 		print("SceneUIManager: MainMenu instantiated.")
 
 	# Loot Screen
-	if loot_screen_scene and not is_instance_valid(loot_screen_instance):
-		loot_screen_instance = loot_screen_scene.instantiate()
-		ui_parent_node.add_child(loot_screen_instance)
+	if loot_screen_scene and not is_instance_valid(loot_screen_instance): # loot_screen_instance is the Control node
+		var loot_screen_root_canvas_layer = loot_screen_scene.instantiate() # This is the CanvasLayer
+		if not is_instance_valid(loot_screen_root_canvas_layer):
+			printerr("SceneUIManager: Failed to instantiate loot_screen_scene.")
+			return
+
+		ui_parent_node.add_child(loot_screen_root_canvas_layer)
+		
+		# Get the actual Control node which has the script
+		var control_node = loot_screen_root_canvas_layer.get_node_or_null("LootScreen") 
+		if not is_instance_valid(control_node) or not control_node is Control:
+			printerr("SceneUIManager: Failed to get 'LootScreen' Control child from instantiated LootScreenCanvasLayer. Found: %s" % str(control_node))
+			loot_screen_root_canvas_layer.queue_free() # Clean up
+			return 
+		
+		loot_screen_instance = control_node # Assign the Control node
+
+		# Connect signals to loot_screen_instance (the Control node)
 		if loot_screen_instance.has_signal("loot_selected"):
 			loot_screen_instance.loot_selected.connect(_on_loot_selected_internal)
 		if loot_screen_instance.has_signal("skip_loot_pressed"):
@@ -60,8 +75,9 @@ func _ensure_scenes_instantiated():
 			loot_screen_instance.request_inventory_panel_show.connect(_on_loot_screen_inventory_requested_internal) # Callable self implied
 		else:
 			printerr("SceneUIManager: LootScreen instance is missing 'request_inventory_panel_show' signal.")
-		loot_screen_instance.hide()
-		print("SceneUIManager: LootScreen instantiated.")
+		
+		loot_screen_root_canvas_layer.hide() # Hide the CanvasLayer (root)
+		print("SceneUIManager: LootScreen (CanvasLayer structure) instantiated.")
 
 	# Game Over Screen
 	if game_over_screen_scene and not is_instance_valid(game_over_instance):
@@ -99,21 +115,33 @@ func hide_main_menu():
 		print("SceneUIManager: Hiding MainMenu.")
 
 func show_loot_screen(loot_options: Array):
-	_ensure_scenes_instantiated()
+	_ensure_scenes_instantiated() # Ensures loot_screen_instance (Control) and its CanvasLayer parent are set up
 	if is_instance_valid(loot_screen_instance):
 		if loot_screen_instance.has_method("display_loot_options"):
 			loot_screen_instance.display_loot_options(loot_options)
-			print("SceneUIManager: Showing LootScreen with options.")
+			
+			var root_node = loot_screen_instance.get_parent() # Should be the CanvasLayer
+			if is_instance_valid(root_node): # Could check `if root_node is CanvasLayer:` for more safety
+				root_node.show()
+				print("SceneUIManager: Showing LootScreen (via its root CanvasLayer).")
+			else:
+				printerr("SceneUIManager: LootScreen's root node (CanvasLayer) not found for showing. Attempting to show loot_screen_instance directly.")
+				loot_screen_instance.show() # Fallback, might not be what's intended if structure is wrong
 		else:
-			printerr("SceneUIManager: LootScreen missing display_loot_options method.")
-			loot_screen_instance.show()
+			printerr("SceneUIManager: LootScreen Control instance missing display_loot_options method.")
 	else:
-		printerr("SceneUIManager: LootScreen instance not valid to show.")
+		printerr("SceneUIManager: LootScreen Control instance not valid to show.")
 
 func hide_loot_screen():
 	if is_instance_valid(loot_screen_instance):
-		loot_screen_instance.hide()
-		print("SceneUIManager: Hiding LootScreen.")
+		var root_node = loot_screen_instance.get_parent() # Should be the CanvasLayer
+		if is_instance_valid(root_node):
+			root_node.hide()
+			print("SceneUIManager: Hiding LootScreen (via its root CanvasLayer).")
+		else:
+			printerr("SceneUIManager: LootScreen's root node (CanvasLayer) not found for hiding. Attempting to hide loot_screen_instance directly.")
+			loot_screen_instance.hide() # Fallback
+	# No need to print error if loot_screen_instance itself is invalid, show_loot_screen would have handled it.
 
 
 func show_game_over_screen(final_score: int, round_reached: int):

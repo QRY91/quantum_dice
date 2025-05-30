@@ -12,6 +12,7 @@ signal game_menu_button_pressed # New signal for the game menu button
 const HISTORY_TRACK_PATH = "%HistoryTrackContainer"
 const DICE_FACE_SCROLL_CONTAINER_PATH = "%DiceFaceScrollContainer"
 const DICE_FACE_VBOX_PATH = "%DiceFaceScrollContainer/VBoxContainer"
+const DICE_FACE_GRID_PATH = "%DiceFaceScrollContainer/DiceDisplayGrid"
 const INVENTORY_TOGGLE_BUTTON_PATH = "%InventoryToggleButton"
 
 const LEVEL_DISPLAY_PATH = "%LevelLabel"
@@ -36,12 +37,15 @@ const TRACK_MANAGER_PATH = "%LogicTrackDisplay" # Path for TrackManager (LogicTr
 @export var MAX_HISTORY_SLOTS = 5
 @export var GLYPH_HISTORY_SIZE = Vector2(80, 80)
 @export var GLYPH_INVENTORY_SIZE = Vector2(64, 64)
+@export var GLYPH_INVENTORY_GRID_ITEM_SIZE = Vector2(40,40)
+@export var GLYPH_INVENTORY_GRID_COLUMNS = 7
 @export var RUNESLOT_OVERLAY_TEXTURE: Texture2D
 
 # Node references
 @onready var history_track_container: HBoxContainer = get_node_or_null(HISTORY_TRACK_PATH)
 @onready var dice_face_scroll_container: ScrollContainer = get_node_or_null(DICE_FACE_SCROLL_CONTAINER_PATH)
 @onready var dice_face_vbox: VBoxContainer = get_node_or_null(DICE_FACE_VBOX_PATH)
+@onready var dice_face_grid: GridContainer = get_node_or_null(DICE_FACE_GRID_PATH)
 @onready var inventory_toggle_button: TextureButton = get_node_or_null(INVENTORY_TOGGLE_BUTTON_PATH)
 
 @onready var level_display_label: Label = get_node_or_null(LEVEL_DISPLAY_PATH)
@@ -84,8 +88,10 @@ func _ready():
 	print("HUD _ready: Start.")
 	if not is_instance_valid(dice_face_scroll_container):
 		printerr("HUD _ready: DiceFaceScrollContainer NOT FOUND.")
-	if not is_instance_valid(dice_face_vbox):
-		printerr("HUD _ready: dice_face_display_container NOT FOUND.")
+	if not is_instance_valid(dice_face_grid):
+		printerr("HUD _ready: DiceDisplayGrid NOT FOUND at path: " + DICE_FACE_GRID_PATH)
+	else:
+		dice_face_grid.columns = GLYPH_INVENTORY_GRID_COLUMNS
 	
 	if not is_instance_valid(history_track_container):
 		printerr("HUD _ready: HistoryTrackContainer node NOT FOUND!")
@@ -103,9 +109,16 @@ func _ready():
 		print("HUD: TrackManager (LogicTrackDisplay) node found.")
 		
 	if not is_instance_valid(inventory_toggle_button):
-		printerr("HUD _ready: InventoryToggleButton (HUD's own) NOT FOUND.")
+		printerr("HUD _ready: InventoryToggleButton (HUD\'s own) NOT FOUND.")
 	else:	
+		inventory_toggle_button.toggle_mode = true # Ensure toggle_mode is true
 		inventory_toggle_button.toggled.connect(_on_inventory_toggle_button_toggled)
+
+	if is_instance_valid(game_menu_button):
+		game_menu_button.pressed.connect(self._on_game_menu_button_pressed)
+		print("HUD: Connected GameMenuButton.pressed to _on_game_menu_button_pressed.")
+	else:
+		printerr("HUD: GameMenuButton node not found at path: %s" % GAME_MENU_BUTTON_PATH)
 		
 	if PlayerDiceManager.has_signal("player_dice_changed"):
 		PlayerDiceManager.player_dice_changed.connect(_on_player_dice_manager_changed)
@@ -186,36 +199,29 @@ func show_synergy_message(full_message: String):
 		clear_timer.timeout.connect(Callable(synergy_notification_label, "set_text").bind(""))
 
 func update_dice_inventory_display(current_player_dice_array: Array[GlyphData]):
-	if not is_instance_valid(dice_face_vbox):
-		printerr("HUD: Cannot update dice inventory, VBoxContainer for glyphs is missing.")
+	if not is_instance_valid(dice_face_grid):
+		printerr("HUD: Cannot update dice inventory, DiceDisplayGrid for glyphs is missing.")
 		return
-	for child in dice_face_vbox.get_children():
+	for child in dice_face_grid.get_children():
 		child.queue_free()
 	if current_player_dice_array.is_empty():
 		var empty_label := Label.new()
 		empty_label.text = "Dice Bag is Empty"
 		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		dice_face_vbox.add_child(empty_label)
+		dice_face_grid.add_child(empty_label)
 		return
 	for glyph_data in current_player_dice_array:
 		if not is_instance_valid(glyph_data): continue
-		var glyph_entry = HBoxContainer.new()
-		glyph_entry.alignment = HBoxContainer.ALIGNMENT_CENTER
 
 		var texture_rect = TextureRect.new()
 		texture_rect.texture = glyph_data.texture
-		texture_rect.custom_minimum_size = GLYPH_INVENTORY_SIZE
+		texture_rect.custom_minimum_size = GLYPH_INVENTORY_GRID_ITEM_SIZE
 		texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		glyph_entry.add_child(texture_rect)
-
-		var name_label = Label.new()
-		name_label.text = glyph_data.display_name
-		name_label.custom_minimum_size = Vector2(100, GLYPH_INVENTORY_SIZE.y)
-		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		glyph_entry.add_child(name_label)
+		texture_rect.tooltip_text = glyph_data.display_name
 		
-		dice_face_vbox.add_child(glyph_entry)
+		dice_face_grid.add_child(texture_rect)
+
 	print("HUD: Dice inventory display updated with %d glyphs." % current_player_dice_array.size())
 
 # --- Inventory Management ---
@@ -242,13 +248,20 @@ func set_inventory_visibility(is_visible: bool):
 		else:
 			printerr("HUD: PlayerDiceManager not available to update inventory display.")
 	
+	# Update the modulate of the toggle button based on visibility
+	if is_instance_valid(inventory_toggle_button):
+		if is_visible:
+			inventory_toggle_button.modulate = Color.WHITE # Fully opaque when open
+		else:
+			inventory_toggle_button.modulate = Color(1, 1, 1, 0.380392) # Semi-transparent when closed
+	
 	emit_signal("inventory_toggled", is_visible)
 
 # Renamed for clarity: This is for the HUD's own inventory toggle button
 func _on_inventory_toggle_button_toggled(button_pressed: bool):
 	if not is_instance_valid(dice_face_scroll_container): return
 	# Toggle visibility based on current state
-	set_inventory_visibility(!dice_face_scroll_container.visible)
+	set_inventory_visibility(button_pressed)
 
 
 func _on_player_dice_manager_changed(new_dice_array: Array[GlyphData]):
@@ -304,18 +317,21 @@ func trigger_entanglement_visuals(rolled_glyph_slot_index: int, partner_glyph_on
 		var popup_text = "+%d Entangled!" % entanglement_bonus_amount
 		var popup_color = Color.CYAN # Or Color.SKY_BLUE
 		# Position it slightly differently from other popups
-		var start_pos = score_target_display_label.global_position + Vector2(randf_range(-10, 10), -60 + randf_range(-5, 5)) 
+		var base_start_pos = score_target_display_label.global_position + score_target_display_label.size / 2.0
+		var start_pos = base_start_pos + Vector2(randf_range(-20, 20), randf_range(10, 20) + randf_range(-5, 5)) 
 		_create_score_popup_label(popup_text, start_pos, popup_color, 0.15) # Slight delay
 
 func play_score_fanfare(points_from_roll: int, points_from_synergy: int, new_total_round_score: int, synergy_messages: Array[String], success_tier: int):
 	# print("HUD: play_score_fanfare. Roll pts: %d, Synergy pts: %d, NEW TOTAL SCORE: %d, Tier: %d, Msgs: %s" % [points_from_roll, points_from_synergy, new_total_round_score, success_tier, str(synergy_messages)])
 	_fanfare_active_tweens = 0 
+	var base_start_pos = score_target_display_label.global_position + score_target_display_label.size / 2.0
+
 
 	# Create score popup for roll points if any
 	if points_from_roll > 0:
 		_fanfare_active_tweens += 1
 		var roll_points_text = "+%d" % points_from_roll
-		var start_pos = score_target_display_label.global_position + Vector2(randf_range(-10, 10), 0)
+		var start_pos = base_start_pos + Vector2(randf_range(-20, 20), randf_range(0, 10))
 		var popup_tween = _create_score_popup_label(roll_points_text, start_pos)
 		popup_tween.finished.connect(_on_fanfare_tween_finished)
 
@@ -323,7 +339,7 @@ func play_score_fanfare(points_from_roll: int, points_from_synergy: int, new_tot
 	if points_from_synergy > 0:
 		_fanfare_active_tweens += 1
 		var synergy_points_text = "+%d SYNERGY!" % points_from_synergy
-		var start_pos = score_target_display_label.global_position + Vector2(randf_range(-10, 10), -30)
+		var start_pos = base_start_pos + Vector2(randf_range(-20, 20), randf_range(20, 30))
 		var popup_tween = _create_score_popup_label(synergy_points_text, start_pos, Color.YELLOW)
 		popup_tween.finished.connect(_on_fanfare_tween_finished)
 
@@ -331,7 +347,7 @@ func play_score_fanfare(points_from_roll: int, points_from_synergy: int, new_tot
 	for i in range(synergy_messages.size()):
 		_fanfare_active_tweens += 1
 		var msg = synergy_messages[i]
-		var start_pos = score_target_display_label.global_position + Vector2(randf_range(-10, 10), -60 + (i * -20))
+		var start_pos = Vector2(400, 320) + Vector2(randf_range(-20, 20), i * 20) # Centered around (400, 320)
 		var popup_tween = _create_score_popup_label(msg, start_pos, Color.CYAN, 0.15 * i)
 		popup_tween.finished.connect(_on_fanfare_tween_finished)
 
