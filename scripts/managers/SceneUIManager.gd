@@ -34,20 +34,32 @@ func set_ui_parent_node(parent: Node):
 		printerr("SceneUIManager: Invalid UI Parent Node provided.")
 
 func _ensure_scenes_instantiated():
+	print("SceneUIManager: _ensure_scenes_instantiated() START")
 	if not is_instance_valid(ui_parent_node):
 		printerr("SceneUIManager: Cannot instantiate UI scenes, ui_parent_node not set.")
 		return
 
 	# Main Menu
+	print("SceneUIManager: Checking MainMenu setup...")
 	if main_menu_scene and not is_instance_valid(main_menu_instance):
+		print("SceneUIManager: Instantiating MainMenu...")
 		main_menu_instance = main_menu_scene.instantiate()
 		ui_parent_node.add_child(main_menu_instance)
 		if main_menu_instance.has_signal("start_game_pressed"):
+			print("SceneUIManager: Connecting MainMenu start_game_pressed signal...")
 			main_menu_instance.start_game_pressed.connect(_on_main_menu_start_game_internal) # Callable self implied
 		main_menu_instance.hide()
-		print("SceneUIManager: MainMenu instantiated.")
+		print("SceneUIManager: MainMenu instantiated and hidden.")
+	else:
+		if not main_menu_scene:
+			printerr("SceneUIManager: main_menu_scene is null!")
+		if is_instance_valid(main_menu_instance):
+			print("SceneUIManager: MainMenu instance already exists.")
+		else:
+			printerr("SceneUIManager: MainMenu instance is invalid but scene exists!")
 
 	# Loot Screen
+	print("SceneUIManager: Checking LootScreen setup...")
 	if loot_screen_scene and not is_instance_valid(loot_screen_instance): # loot_screen_instance is the Control node
 		var loot_screen_root_canvas_layer = loot_screen_scene.instantiate() # This is the CanvasLayer
 		if not is_instance_valid(loot_screen_root_canvas_layer):
@@ -56,10 +68,10 @@ func _ensure_scenes_instantiated():
 
 		ui_parent_node.add_child(loot_screen_root_canvas_layer)
 		
-		# Get the actual Control node which has the script
-		var control_node = loot_screen_root_canvas_layer.get_node_or_null("LootScreen") 
+		# Get the actual Control node which has the script - use the actual node name from the scene
+		var control_node = loot_screen_root_canvas_layer.get_node_or_null("LootScreenCanvasLayer@LootScreen") 
 		if not is_instance_valid(control_node) or not control_node is Control:
-			printerr("SceneUIManager: Failed to get 'LootScreen' Control child from instantiated LootScreenCanvasLayer. Found: %s" % str(control_node))
+			printerr("SceneUIManager: Failed to get 'LootScreenCanvasLayer@LootScreen' Control child from instantiated LootScreenCanvasLayer. Found: %s" % str(control_node))
 			loot_screen_root_canvas_layer.queue_free() # Clean up
 			return 
 		
@@ -80,6 +92,7 @@ func _ensure_scenes_instantiated():
 		print("SceneUIManager: LootScreen (CanvasLayer structure) instantiated.")
 
 	# Game Over Screen
+	print("SceneUIManager: Checking GameOverScreen setup...")
 	if game_over_screen_scene and not is_instance_valid(game_over_instance):
 		game_over_instance = game_over_screen_scene.instantiate()
 		ui_parent_node.add_child(game_over_instance)
@@ -89,22 +102,32 @@ func _ensure_scenes_instantiated():
 			game_over_instance.main_menu_pressed.connect(_on_game_over_main_menu_internal)
 		game_over_instance.hide()
 		print("SceneUIManager: GameOverScreen instantiated.")
+	print("SceneUIManager: _ensure_scenes_instantiated() END")
 
 
 # --- Public Methods for Game.gd to Call ---
 func show_main_menu():
+	print("SceneUIManager: show_main_menu() START")
 	_ensure_scenes_instantiated()
 	if is_instance_valid(main_menu_instance):
-		if is_instance_valid(loot_screen_instance): loot_screen_instance.hide()
-		if is_instance_valid(game_over_instance): game_over_instance.hide()
+		print("SceneUIManager: MainMenu instance is valid, proceeding to show...")
+		if is_instance_valid(loot_screen_instance): 
+			print("SceneUIManager: Hiding LootScreen...")
+			loot_screen_instance.hide()
+		if is_instance_valid(game_over_instance): 
+			print("SceneUIManager: Hiding GameOverScreen...")
+			game_over_instance.hide()
 		
 		if main_menu_instance.has_method("show_menu"):
+			print("SceneUIManager: Calling MainMenu's show_menu() method...")
 			main_menu_instance.show_menu()
 		else:
+			print("SceneUIManager: MainMenu has no show_menu() method, using basic show()...")
 			main_menu_instance.show()
-		print("SceneUIManager: Showing MainMenu.")
+		print("SceneUIManager: MainMenu should now be visible.")
 	else:
 		printerr("SceneUIManager: MainMenu instance not valid to show.")
+	print("SceneUIManager: show_main_menu() END")
 
 func hide_main_menu():
 	if is_instance_valid(main_menu_instance):

@@ -4,10 +4,12 @@ extends Control
 signal loot_selected(chosen_glyph: GlyphData)
 signal loot_screen_closed 
 signal skip_loot_pressed
+signal request_inventory_panel_show
 
 @onready var title_label: Label = $TitleLabel
 @onready var loot_options_container: HBoxContainer = $LootOptionsContainer
 @onready var skip_button: TextureButton = $SkipButton
+@onready var inventory_toggle_button: TextureButton = $InventoryToggleButton
 
 var loot_glyphs_data: Array[GlyphData] = []
 var selected_index: int = 0
@@ -29,6 +31,11 @@ func _ready():
 		skip_button.pressed.connect(_on_internal_skip_button_pressed)
 	else:
 		printerr("LootScreen: SkipButton node not found!")
+		
+	if is_instance_valid(inventory_toggle_button):
+		inventory_toggle_button.pressed.connect(_on_inventory_toggle_button_pressed)
+	else:
+		printerr("LootScreen: InventoryToggleButton node not found!")
 		
 	if is_instance_valid(loot_options_container):
 		# Example: Add some separation between loot items in the HBoxContainer
@@ -177,6 +184,10 @@ func _on_internal_skip_button_pressed():
 	print("LootScreen: Skip button pressed, emitting skip_loot_pressed signal.")
 	emit_signal("skip_loot_pressed")
 	_cleanup_and_hide()
+
+func _on_inventory_toggle_button_pressed():
+	print("LootScreen: Inventory toggle button pressed, emitting request_inventory_panel_show signal.")
+	emit_signal("request_inventory_panel_show")
 
 func _cleanup_and_hide():
 	hide()

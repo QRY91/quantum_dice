@@ -88,6 +88,7 @@ var settings_menu_canvas_layer_root: CanvasLayer # This will be the root CanvasL
 
 
 func _ready():
+	print("Game: _ready() START")
 	# RollAnimationController is instanced in Game.tscn via [node name="RollAnimationController" parent="." instance=ExtResource("7_hktyb")].
 	# The @onready var roll_animation_controller should point to it.
 	# The manual instantiation block that was here previously has been removed.
@@ -165,12 +166,16 @@ func _ready():
 	auto_roll_delay_timer.wait_time = 0.25; auto_roll_delay_timer.one_shot = true
 	auto_roll_delay_timer.timeout.connect(_on_auto_roll_delay_timer_timeout); add_child(auto_roll_delay_timer)
 
+	print("Game: Setting up UI parent node...")
 	if is_instance_valid(ui_canvas):
+		print("Game: ui_canvas node found and valid, setting as UI parent.")
 		SceneUIManager.set_ui_parent_node(ui_canvas)
 	else:
 		printerr("Game: CRITICAL - ui_canvas node not found, cannot set parent for SceneUIManager!")
+		print("Game: Falling back to using Game node as UI parent.")
 		SceneUIManager.set_ui_parent_node(self)
 
+	print("Game: Setting up HUD...")
 	if hud_scene:
 		hud_instance = hud_scene.instantiate()
 		if is_instance_valid(ui_canvas): ui_canvas.add_child(hud_instance)
@@ -212,6 +217,7 @@ func _ready():
 	else: 
 		printerr("ERROR: HUD.tscn not preloaded!")
 	
+	print("Game: Setting up SceneUIManager signals...")
 	# Connect to SceneUIManager signals
 	SceneUIManager.main_menu_start_game_pressed.connect(_on_main_menu_start_game)
 	SceneUIManager.loot_screen_loot_selected.connect(_on_loot_selected)
@@ -222,9 +228,11 @@ func _ready():
 	if not is_instance_valid(get_node_or_null("UICanvas")): 
 		printerr("CRITICAL: UICanvas node not found in Game scene!")
 
+	print("Game: Setting up roll button...")
 	if is_instance_valid(roll_button): 
 		roll_button.pressed.connect(_on_roll_button_pressed)
 	
+	print("Game: Setting up ProgressionManager signals...")
 	if ProgressionManager.has_signal("game_phase_changed"): 
 		ProgressionManager.game_phase_changed.connect(_on_progression_game_phase_changed)
 	if ProgressionManager.has_signal("cornerstone_slot_unlocked"): 
@@ -232,6 +240,7 @@ func _ready():
 	if ProgressionManager.has_signal("boss_indicator_update"): 
 		ProgressionManager.boss_indicator_update.connect(_on_progression_boss_indicator_update)
 
+	print("Game: Setting initial game state and showing main menu...")
 	current_game_roll_state = GameRollState.MENU
 	SceneUIManager.show_main_menu()
 	print("Game: Requested SceneUIManager to show main menu.")
@@ -244,22 +253,24 @@ func _ready():
 	else:
 		print("Game.gd: CosmicBackground node NOT FOUND in Game scene by get_node_or_null.")
 
+	print("Game: Setting up in-game menu...")
 	# --- In-Game Menu Setup ---
 	if in_game_menu_scene:
 		var temp_igm_root = in_game_menu_scene.instantiate()
 		if temp_igm_root is CanvasLayer:
 			in_game_menu_canvas_layer_root = temp_igm_root
-			in_game_menu_instance = in_game_menu_canvas_layer_root.get_node_or_null("InGameMenu")
+			# The Control node is now a child of the CanvasLayer
+			in_game_menu_instance = in_game_menu_canvas_layer_root.get_node_or_null("Control")
 			if not is_instance_valid(in_game_menu_instance):
-				printerr("Game: CRITICAL - Could not find 'InGameMenu' Control child in InGameMenu.tscn instance.")
-				in_game_menu_canvas_layer_root.queue_free() # Clean up
-				in_game_menu_canvas_layer_root = null # Ensure it's null if setup failed
-			else: # This else belongs to 'if not is_instance_valid(in_game_menu_instance):'
-				# This entire block is now correctly indented under the else
-				if is_instance_valid(ui_canvas): 
+				printerr("Game: CRITICAL - Could not find 'Control' node in InGameMenu.tscn instance.")
+				in_game_menu_canvas_layer_root.queue_free()
+				in_game_menu_canvas_layer_root = null
+			else:
+				if is_instance_valid(ui_canvas):
 					ui_canvas.add_child(in_game_menu_canvas_layer_root)
-				else: 
-					add_child(in_game_menu_canvas_layer_root); printerr("Game: UICanvas not found for InGameMenu.")
+				else:
+					add_child(in_game_menu_canvas_layer_root)
+					printerr("Game: UICanvas not found for InGameMenu.")
 				in_game_menu_canvas_layer_root.hide() # Start hidden
 
 				# Connect InGameMenu signals from in_game_menu_instance (the Control node)
@@ -271,10 +282,13 @@ func _ready():
 					in_game_menu_instance.retry_pressed.connect(_on_in_game_menu_retry)
 				if in_game_menu_instance.has_signal("quit_to_main_menu_pressed"):
 					in_game_menu_instance.quit_to_main_menu_pressed.connect(_on_in_game_menu_quit_to_main)
-		else: # This else belongs to 'if temp_igm_root is CanvasLayer:'
+		else:
 			printerr("Game: CRITICAL - Instantiated InGameMenu.tscn root is not a CanvasLayer!")
-	else: # This else belongs to 'if in_game_menu_scene:'
+			if is_instance_valid(temp_igm_root): temp_igm_root.queue_free()
+	else:
 		printerr("Game: CRITICAL - InGameMenu.tscn not preloaded!")
+	
+	print("Game: _ready() END")
 
 
 func _unhandled_input(event: InputEvent):

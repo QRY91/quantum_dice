@@ -31,7 +31,7 @@ const BOSS_INDICATOR_LABEL_PATH = "%BossIndicatorPanel/BossIndicatorLabel"
 
 const GAME_MENU_BUTTON_PATH = "%GameMenuButton" # Path for the new button
 const SYNERGY_NOTIFICATION_LABEL_PATH = "%SynergyNotificationLabel" # Path for SynergyNotificationLabel
-const TRACK_MANAGER_PATH = "%LogicTrackDisplay" # Path for TrackManager (LogicTrackDisplay)
+const LOGIC_TRACK_DISPLAY_PATH = "%LogicTrackDisplay" # Correct unique name path
 
 # Configuration
 @export var MAX_HISTORY_SLOTS = 5
@@ -68,7 +68,7 @@ const TRACK_MANAGER_PATH = "%LogicTrackDisplay" # Path for TrackManager (LogicTr
 
 @onready var game_menu_button: TextureButton = get_node_or_null(GAME_MENU_BUTTON_PATH)
 @onready var synergy_notification_label: Label = get_node_or_null(SYNERGY_NOTIFICATION_LABEL_PATH)
-@onready var track_manager: Control = get_node_or_null(TRACK_MANAGER_PATH)
+@onready var track_manager: Control = get_node_or_null(LOGIC_TRACK_DISPLAY_PATH) # Correct reference
 
 var history_slots_nodes: Array[TextureRect] = []
 
@@ -93,25 +93,18 @@ func _ready():
 	else:
 		dice_face_grid.columns = GLYPH_INVENTORY_GRID_COLUMNS
 	
-	if not is_instance_valid(history_track_container):
-		printerr("HUD _ready: HistoryTrackContainer node NOT FOUND!")
-	else:
-		print("HUD _ready: HistoryTrackContainer node found.")
-		
-	if not is_instance_valid(synergy_notification_label):
-		printerr("HUD: SynergyNotificationLabel node not found at path: ", SYNERGY_NOTIFICATION_LABEL_PATH)
-	else:
-		print("HUD: SynergyNotificationLabel node found.")
-
+	# Temporarily comment out TrackManager checks for debugging
 	if not is_instance_valid(track_manager):
-		printerr("HUD: TrackManager (LogicTrackDisplay) node not found at path: ", TRACK_MANAGER_PATH)
+		print("HUD: LogicTrackDisplay (TrackManager) node not found at path: ", LOGIC_TRACK_DISPLAY_PATH)
 	else:
-		print("HUD: TrackManager (LogicTrackDisplay) node found.")
+		print("HUD: LogicTrackDisplay (TrackManager) node found.")
+		# Only set mouse filter, don't disable processing
+		track_manager.mouse_filter = Control.MOUSE_FILTER_PASS
 		
 	if not is_instance_valid(inventory_toggle_button):
 		printerr("HUD _ready: InventoryToggleButton (HUD\'s own) NOT FOUND.")
 	else:	
-		inventory_toggle_button.toggle_mode = true # Ensure toggle_mode is true
+		inventory_toggle_button.toggle_mode = true
 		inventory_toggle_button.toggled.connect(_on_inventory_toggle_button_toggled)
 
 	if is_instance_valid(game_menu_button):
@@ -402,17 +395,34 @@ func _create_score_popup_label(text_to_display: String, start_global_pos: Vector
 	popup_tween.finished.connect(popup_label.queue_free)
 	return popup_tween
 
-func get_next_history_slot_global_position() -> Vector2:
-	if is_instance_valid(track_manager) and track_manager.has_method("get_global_position_of_next_slot"):
-		return track_manager.get_global_position_of_next_slot()
-	printerr("HUD: TrackManager not found or no get_global_position_of_next_slot method for get_next_history_slot_global_position.")
-	return get_viewport_rect().size / 2.0
+# Temporarily disable track-related functions
+func activate_track_slots(num_slots_to_activate: int):
+	if is_instance_valid(track_manager) and track_manager.has_method("activate_slots_for_round"):
+		track_manager.activate_slots_for_round(num_slots_to_activate)
+	else:
+		printerr("HUD: Cannot activate track slots, track_manager is invalid or missing method.")
 
 func add_glyph_to_visual_history(glyph: GlyphData):
+	if not is_instance_valid(glyph):
+		printerr("HUD: Cannot add invalid glyph to visual history.")
+		return
 	if is_instance_valid(track_manager) and track_manager.has_method("place_glyph_on_next_available_slot"):
 		track_manager.place_glyph_on_next_available_slot(glyph)
 	else:
-		printerr("HUD: TrackManager not found or no place_glyph_on_next_available_slot method.")
+		printerr("HUD: Cannot add glyph to visual history, track_manager is invalid or missing method.")
+
+func get_next_history_slot_global_position() -> Vector2:
+	if is_instance_valid(track_manager) and track_manager.has_method("get_global_position_of_next_slot"):
+		return track_manager.get_global_position_of_next_slot()
+	printerr("HUD: Cannot get next history slot position, track_manager is invalid or missing method.")
+	return get_viewport_rect().size / 2.0
+
+# Helper for Game.gd to access track slot nodes for synergy visuals
+func get_track_slot_node_by_index(index: int) -> Node:
+	if is_instance_valid(track_manager) and track_manager.has_method("get_track_slot_by_index"):
+		return track_manager.get_track_slot_by_index(index)
+	printerr("HUD: Cannot get_track_slot_node_by_index. TrackManager is invalid or missing method.")
+	return null
 
 func reset_full_game_visuals():
 	print("HUD: reset_full_game_visuals called.")
@@ -431,12 +441,6 @@ func reset_round_visuals():
 		printerr("HUD: TrackManager not found or no clear_track_for_new_round method.")
 	# Inventory visibility is not reset per round, only on full game reset or when loot screen closes.
 
-func activate_track_slots(num_slots_to_activate: int):
-	if is_instance_valid(track_manager) and track_manager.has_method("activate_slots_for_round"):
-		track_manager.activate_slots_for_round(num_slots_to_activate)
-	else:
-		printerr("HUD: TrackManager not found or no activate_slots_for_round method.")
-
 func update_cornerstone_display(slot_index_zero_based: int, is_logic_unlocked: bool):
 	if is_instance_valid(track_manager) and track_manager.has_method("update_specific_cornerstone_logic_unlocked"):
 		track_manager.update_specific_cornerstone_logic_unlocked(slot_index_zero_based, is_logic_unlocked)
@@ -452,13 +456,6 @@ func show_boss_incoming_indicator(show: bool, message: String = "Boss Incoming!"
 		boss_indicator_label.tooltip_text = "The next round features a powerful Boss!"
 	else:
 		boss_indicator_panel.visible = false
-
-# Helper for Game.gd to access track slot nodes for synergy visuals
-func get_track_slot_node_by_index(index: int) -> Node:
-	if is_instance_valid(track_manager) and track_manager.has_method("get_track_slot_by_index"):
-		return track_manager.get_track_slot_by_index(index)
-	printerr("HUD: Cannot get_track_slot_node_by_index. TrackManager is invalid or missing method.")
-	return null
 
 func _on_game_menu_button_pressed():
 	emit_signal("game_menu_button_pressed")

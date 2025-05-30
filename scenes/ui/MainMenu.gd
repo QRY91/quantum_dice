@@ -19,34 +19,44 @@ const TITLE_FLOAT_SPEED: float = 1.0
 const TITLE_FLOAT_AMOUNT: float = 10.0
 
 func _ready():
+	print("MainMenu: _ready() START")
 	if is_instance_valid(start_button):
+		print("MainMenu: Connecting start button signal...")
 		start_button.pressed.connect(_on_start_button_pressed)
 	else:
 		printerr("MainMenu.gd: StartButton node not found!")
 		
 	if is_instance_valid(settings_button):
+		print("MainMenu: Connecting settings button signal...")
 		settings_button.pressed.connect(_on_settings_button_pressed)
 	else:
 		printerr("MainMenu.gd: SettingsButton node not found!")
 
 	# Connect to ScoreManager's signal to update high score if it changes while menu is visible
 	if ScoreManager.has_signal("high_score_updated"):
+		print("MainMenu: Connecting to ScoreManager high_score_updated signal...")
 		ScoreManager.high_score_updated.connect(_on_high_score_updated)
 	
 	# Initial display of high score
+	print("MainMenu: Setting initial high score display...")
 	_update_high_score_display()
 
 	# Store original title position for animation
 	if is_instance_valid(title_label):
+		print("MainMenu: Storing title label position for animation...")
 		title_original_pos = title_label.position
 	
 	# Set up background shader with palette colors
 	if is_instance_valid(background_rect) and background_rect.material:
+		print("MainMenu: Setting up initial shader colors...")
 		_update_shader_colors()
 	
 	# Connect to palette manager for color updates
 	if PaletteManager:
+		print("MainMenu: Connecting to PaletteManager active_palette_updated signal...")
 		PaletteManager.active_palette_updated.connect(_on_palette_changed)
+	
+	print("MainMenu: _ready() END. Initial visible state = ", visible)
 
 func _process(delta: float):
 	if is_instance_valid(title_label):
@@ -82,20 +92,28 @@ func _on_settings_back():
 	settings_button.disabled = false
 
 func show_menu():
+	print("MainMenu: show_menu() START")
 	visible = true
 	if is_instance_valid(start_button):
+		print("MainMenu: Grabbing focus for start button...")
 		start_button.grab_focus()
+	else:
+		printerr("MainMenu: start_button is not valid for focus!")
 	
+	print("MainMenu: Updating high score display...")
 	_update_high_score_display() # Update when shown
+	print("MainMenu: Updating shader colors...")
 	_update_shader_colors() # Ensure colors are current
 		
-	print("MainMenu: show_menu() called.")
+	print("MainMenu: show_menu() END. Visible = ", visible)
 
 func hide_menu():
+	print("MainMenu: hide_menu() START")
 	visible = false
 	if settings_menu:
+		print("MainMenu: Hiding settings menu...")
 		settings_menu.hide_menu()
-	print("MainMenu: hide_menu() called.")
+	print("MainMenu: hide_menu() END. Visible = ", visible)
 
 func _update_high_score_display():
 	if is_instance_valid(high_score_label):

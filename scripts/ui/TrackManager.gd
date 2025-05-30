@@ -8,10 +8,21 @@ var track_slot_scene: PackedScene = preload("res://scenes/ui/TrackSlot.tscn")
 const TrackSlotScript: Script = preload("res://scenes/ui/TrackSlot.gd")
 
 var slot_local_positions: Array[Vector2] = [
-	Vector2(240, 480), Vector2(160, 480), Vector2(80, 480),  # Indices 0, 1, 2 (Slot 3)
-	Vector2(80, 400), Vector2(80, 320), Vector2(80, 240), Vector2(80, 160), Vector2(80, 80),
-	Vector2(160, 80), Vector2(240, 80), Vector2(320, 80), Vector2(400, 80), Vector2(480, 80),
-	Vector2(480, 160), Vector2(480, 240)
+	Vector2(240, 480), # Slot 0 (Index 0) -> Matrix [6,3]
+	Vector2(160, 480), # Slot 1 (Index 1) -> Matrix [6,2]
+	Vector2(80, 480),  # Slot 2 (Index 2) -> Matrix [6,1]
+	Vector2(80, 400),  # Slot 3 (Index 3) -> Matrix [5,1]
+	Vector2(80, 320),  # Slot 4 (Index 4) -> Matrix [4,1]
+	Vector2(80, 240),  # Slot 5 (Index 5) -> Matrix [3,1]
+	Vector2(80, 160),  # Slot 6 (Index 6) -> Matrix [2,1]
+	Vector2(80, 80),   # Slot 7 (Index 7) -> Matrix [1,1]
+	Vector2(160, 80),  # Slot 8 (Index 8) -> Matrix [1,2]
+	Vector2(240, 80),  # Slot 9 (Index 9) -> Matrix [1,3]
+	Vector2(320, 80),  # Slot 10 (Index 10) -> Matrix [1,4]
+	Vector2(400, 80),  # Slot 11 (Index 11) -> Matrix [1,5]
+	Vector2(480, 80),  # Slot 12 (Index 12) -> Matrix [1,6]
+	Vector2(480, 160), # Slot 13 (Index 13) -> Matrix [2,6]
+	Vector2(480, 240)  # Slot 14 (Index 14) -> Matrix [3,6]
 ]
 var current_next_slot_index: int = 0
 
@@ -25,28 +36,58 @@ func _ready():
 	_setup_track_slots_and_cornerstones()
 
 func _setup_track_slots_and_cornerstones():
+	print("TrackManager: _setup_track_slots_and_cornerstones() START")
 	for child in get_children(): child.queue_free()
 	track_slots.clear()
 
+	# First verify we can instantiate a single slot
+	var test_slot = track_slot_scene.instantiate()
+	if not is_instance_valid(test_slot):
+		printerr("TrackManager: CRITICAL - Cannot instantiate TrackSlot scene!")
+		return
+	test_slot.queue_free()
+	
+	print("TrackManager: Test slot instantiation successful, proceeding with setup.")
+
 	for i in range(NUM_SLOTS):
+		print("TrackManager: Creating slot %d..." % i)
 		var slot_instance = track_slot_scene.instantiate()
-		if slot_instance is Control:
-			add_child(slot_instance)
-			if i < slot_local_positions.size():
-				(slot_instance as Control).position = slot_local_positions[i]
-			else: # Fallback position if not enough defined in slot_local_positions
-				(slot_instance as Control).position = Vector2(i * 60, 0) # Simple horizontal layout
-				
-			var is_cs = i in cornerstone_slot_indices
-			var cs_id_val = cornerstone_slot_indices.get(i, "") # Use .get for safety
+		if not is_instance_valid(slot_instance):
+			printerr("TrackManager: CRITICAL - Failed to instantiate slot %d!" % i)
+			continue
 			
-			if slot_instance.has_method("initialize"):
-				slot_instance.initialize(i, is_cs, cs_id_val)
-			track_slots.append(slot_instance)
+		if not (slot_instance is Control):
+			printerr("TrackManager: CRITICAL - Slot %d is not a Control node!" % i)
+			slot_instance.queue_free()
+			continue
+
+		add_child(slot_instance)
+		
+		# Set position with error checking
+		if i < slot_local_positions.size():
+			var pos = slot_local_positions[i]
+			print("TrackManager: Setting predefined position for slot %d: %s" % [i, str(pos)])
+			(slot_instance as Control).position = pos
 		else:
-			printerr("TrackManager: Instantiated TrackSlot is not a Control node!")
+			printerr("TrackManager: No predefined position for slot %d, using fallback position." % i)
+			(slot_instance as Control).position = Vector2(i * 60, 0)
+		
+		# Initialize with error checking
+		var is_cs = i in cornerstone_slot_indices
+		var cs_id_val = cornerstone_slot_indices.get(i, "")
+		
+		print("TrackManager: Initializing slot %d (is_cornerstone: %s)..." % [i, str(is_cs)])
+		if not slot_instance.has_method("initialize"):
+			printerr("TrackManager: CRITICAL - Slot %d missing initialize method!" % i)
+			continue
+			
+		slot_instance.initialize(i, is_cs, cs_id_val)
+		track_slots.append(slot_instance)
+		print("TrackManager: Slot %d created and initialized successfully." % i)
+
 	print("TrackManager: Setup complete with %d slots." % track_slots.size())
 	current_next_slot_index = 0
+	print("TrackManager: _setup_track_slots_and_cornerstones() END")
 
 func activate_slots_for_round(num_active_slots: int):
 	for i in range(NUM_SLOTS):

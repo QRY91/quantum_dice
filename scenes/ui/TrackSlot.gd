@@ -36,7 +36,8 @@ var _idle_float_tween: Tween = null
 const IDLE_FLOAT_AMOUNT: float = 3.0 # Pixels to float up/down
 const IDLE_FLOAT_DURATION: float = 1.5 # Seconds for one full cycle (up and down)
 
-const SYNERGY_GLOW_SHADER: Shader = preload("res://shaders/synergy_glow.gdshader")
+# Temporarily disable shader loading
+# const SYNERGY_GLOW_SHADER: Shader = preload("res://shaders/synergy_glow.gdshader")
 var _original_slot_background_material: Material = null
 var _synergy_glow_active: bool = false
 
@@ -64,24 +65,23 @@ func _set_current_state(new_state: SlotState):
 	_update_visuals() # Always update visuals
 
 func _ready():
-	# slot_index is typically -1 here as initialize() is called by TrackManager after _ready()
 	print("TrackSlot _ready: Name: %s, Path: %s, current slot_idx_var: %d" % [name, get_path(), slot_index])
 	_set_current_state(SlotState.INACTIVE) # Set initial state
-
 	_stop_idle_float_animation() # Ensure it's stopped initially
 	
-	if is_instance_valid(slot_background):
-		_original_slot_background_material = slot_background.material
-	else:
-		printerr("TrackSlot '%s': SlotBackground node not found in _ready." % name)
+	# Temporarily disable material handling
+	# if is_instance_valid(slot_background):
+	#     _original_slot_background_material = slot_background.material
+	# else:
+	#     printerr("TrackSlot '%s': SlotBackground node not found in _ready." % name)
 
 	# Connect to PaletteManager for glyph color
-	if PaletteManager: # Directly check for the Autoload
-		PaletteManager.active_palette_updated.connect(_on_palette_changed_for_glyph)
-		# Apply initial palette to glyph if one is somehow already there (unlikely but safe)
-		_on_palette_changed_for_glyph(PaletteManager.get_current_palette_colors())
+	var palette_manager = get_node_or_null("/root/PaletteManager")
+	if is_instance_valid(palette_manager):
+		palette_manager.active_palette_updated.connect(_on_palette_changed_for_glyph)
+		_on_palette_changed_for_glyph(palette_manager.get_current_palette_colors())
 	else:
-		printerr("TrackSlot '%s': Autoload PaletteManager not found. Glyph color will not be dynamic." % name)
+		printerr("TrackSlot '%s': PaletteManager autoload not found. Glyph color will not be dynamic." % name)
 
 func initialize(p_index: int, p_is_cornerstone: bool = false, p_cs_effect_id: StringName = ""):
 	slot_index = p_index
@@ -258,8 +258,9 @@ func _update_visuals():
 		return
 
 	# Apply current palette's main color to the glyph if visible
-	if PaletteManager and is_instance_valid(glyph_display): # Directly check for Autoload
-		glyph_display.modulate = PaletteManager.get_current_palette_colors().get("main", Color.WHITE)
+	var palette_manager = get_node_or_null("/root/PaletteManager")
+	if is_instance_valid(palette_manager) and is_instance_valid(glyph_display):
+		glyph_display.modulate = palette_manager.get_current_palette_colors().get("main", Color.WHITE)
 
 	var show_glyph: bool = false
 	if occupied_glyph_data != null:
@@ -380,28 +381,26 @@ func _stop_idle_float_animation():
 func _exit_tree():
 	_stop_idle_float_animation() # Clean up tween when node exits tree
 	# Disconnect from PaletteManager
-	if PaletteManager and PaletteManager.is_connected("active_palette_updated", Callable(self, "_on_palette_changed_for_glyph")): # Directly check for Autoload
-		PaletteManager.active_palette_updated.disconnect(_on_palette_changed_for_glyph)
+	var palette_manager = get_node_or_null("/root/PaletteManager")
+	if is_instance_valid(palette_manager) and palette_manager.is_connected("active_palette_updated", Callable(self, "_on_palette_changed_for_glyph")):
+		palette_manager.active_palette_updated.disconnect(_on_palette_changed_for_glyph)
 
 # --- Synergy Visuals ---
 func activate_synergy_visuals(glow_color: Color = Color(1.0, 0.8, 0.0, 0.7), strength: float = 0.6, speed: float = 1.5):
-	if not is_instance_valid(slot_background) or not SYNERGY_GLOW_SHADER:
-		printerr("TrackSlot '%s': Cannot activate synergy visuals. SlotBackground or Shader missing." % name)
+	if not is_instance_valid(slot_background):
+		printerr("TrackSlot '%s': Cannot activate synergy visuals. SlotBackground missing." % name)
 		return
 	
-	print("TrackSlot '%s': Activating synergy visuals." % name)
-	var shader_material = ShaderMaterial.new()
-	shader_material.shader = SYNERGY_GLOW_SHADER
-	shader_material.set_shader_parameter("glow_color", glow_color)
-	shader_material.set_shader_parameter("glow_strength", strength)
-	shader_material.set_shader_parameter("pulse_speed", speed)
-	slot_background.material = shader_material
+	print("TrackSlot '%s': Activating synergy visuals (simplified)." % name)
+	# Temporarily just change the modulate color for synergy effect
+	slot_background.modulate = glow_color
 	_synergy_glow_active = true
 
 func deactivate_synergy_visuals():
-	# print("TrackSlot '%s': Deactivating synergy visuals." % name)
 	if is_instance_valid(slot_background):
 		slot_background.material = _original_slot_background_material
+		# Reset modulate to default
+		slot_background.modulate = Color(0.580392, 0.580392, 0.580392, 1)
 	_synergy_glow_active = false
 
 func is_synergy_glow_active() -> bool:
