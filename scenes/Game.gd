@@ -80,7 +80,7 @@ var auto_roll_enabled: bool = false
 
 # --- In-Game Menu ---
 var in_game_menu_scene: PackedScene = preload("res://scenes/ui/InGameMenu.tscn")
-var in_game_menu_instance: Control # This will be the Control node with the script
+var in_game_menu_instance: CanvasLayer # This will be the CanvasLayer node with the script
 var in_game_menu_canvas_layer_root: CanvasLayer # This will be the root CanvasLayer node of the scene
 var settings_menu_scene: PackedScene = preload("res://scenes/ui/settings_menu.tscn")
 var settings_menu_instance: Control # This will be the Control node with the script
@@ -259,10 +259,10 @@ func _ready():
 		var temp_igm_root = in_game_menu_scene.instantiate()
 		if temp_igm_root is CanvasLayer:
 			in_game_menu_canvas_layer_root = temp_igm_root
-			# The Control node is now a child of the CanvasLayer
-			in_game_menu_instance = in_game_menu_canvas_layer_root.get_node_or_null("Control")
+			# The script is on the CanvasLayer root, not on the Control child
+			in_game_menu_instance = in_game_menu_canvas_layer_root # The script is on the CanvasLayer itself
 			if not is_instance_valid(in_game_menu_instance):
-				printerr("Game: CRITICAL - Could not find 'Control' node in InGameMenu.tscn instance.")
+				printerr("Game: CRITICAL - InGameMenu CanvasLayer instance is invalid.")
 				in_game_menu_canvas_layer_root.queue_free()
 				in_game_menu_canvas_layer_root = null
 			else:
@@ -273,7 +273,7 @@ func _ready():
 					printerr("Game: UICanvas not found for InGameMenu.")
 				in_game_menu_canvas_layer_root.hide() # Start hidden
 
-				# Connect InGameMenu signals from in_game_menu_instance (the Control node)
+				# Connect InGameMenu signals from in_game_menu_instance (the CanvasLayer with the script)
 				if in_game_menu_instance.has_signal("resume_pressed"):
 					in_game_menu_instance.resume_pressed.connect(_on_in_game_menu_resume)
 				if in_game_menu_instance.has_signal("settings_pressed"):
@@ -957,12 +957,10 @@ func _on_in_game_menu_resume():
 		if is_instance_valid(in_game_menu_canvas_layer_root):
 			in_game_menu_canvas_layer_root.hide()
 		current_game_roll_state = GameRollState.PLAYING # Or whatever state it was before pausing
-		get_tree().paused = false
-		print("Game: Resumed from in-game menu.")
+		# No need to unpause since the game is turn-based
 
 func _on_in_game_menu_settings():
 	if current_game_roll_state == GameRollState.PAUSED and is_instance_valid(in_game_menu_instance):
-		print("Game: Settings opened from in-game menu.")
 		# Check if the Control node instance is valid, root will be handled if needed
 		if not is_instance_valid(settings_menu_instance):
 			if settings_menu_scene:
@@ -1021,9 +1019,8 @@ func _on_in_game_menu_retry():
 			in_game_menu_instance.hide_menu()
 		if is_instance_valid(in_game_menu_canvas_layer_root):
 			in_game_menu_canvas_layer_root.hide()
-		get_tree().paused = false
+		# No need to unpause since the game is turn-based
 		current_game_roll_state = GameRollState.INITIALIZING_GAME # This will trigger a full reset
-		print("Game: Retry triggered from in-game menu.")
 
 func _on_in_game_menu_quit_to_main():
 	if current_game_roll_state == GameRollState.PAUSED:
@@ -1032,10 +1029,9 @@ func _on_in_game_menu_quit_to_main():
 		if is_instance_valid(in_game_menu_canvas_layer_root):
 			in_game_menu_canvas_layer_root.hide()
 		if is_instance_valid(hud_instance): hud_instance.visible = false # This is okay, HUD is not CanvasLayer based in this way
-		get_tree().paused = false
+		# No need to unpause since the game is turn-based
 		current_game_roll_state = GameRollState.MENU
 		SceneUIManager.show_main_menu()
-		print("Game: Quit to Main Menu triggered from in_game menu.")
 
 func _toggle_in_game_menu():
 	if current_game_roll_state == GameRollState.PAUSED:
@@ -1053,7 +1049,7 @@ func _toggle_in_game_menu():
 			in_game_menu_canvas_layer_root.show()
 			if in_game_menu_instance.has_method("show_menu"): 
 				in_game_menu_instance.show_menu() # For internal setup of the Control
-		get_tree().paused = true
-		print("Game: In-game menu opened. Game Paused.")
+		# No need to pause since the game is turn-based
+		print("Game: In-game menu opened.")
 	else:
 		print("Game: Cannot open in-game menu from state: ", GameRollState.keys()[current_game_roll_state])

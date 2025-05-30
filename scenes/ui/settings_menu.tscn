@@ -5,7 +5,6 @@
 
 [node name="SettingsMenuCanvasLayer" type="CanvasLayer"]
 layer = 30
-process_mode = 2
 
 [node name="SettingsMenu" type="Control" parent="."]
 layout_mode = 3

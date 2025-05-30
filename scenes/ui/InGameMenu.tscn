@@ -4,7 +4,6 @@
 
 [node name="InGameMenu" type="CanvasLayer"]
 layer = 20
-process_mode = 2 # Node.PROCESS_MODE_WHEN_PAUSED
 script = ExtResource("1_abcde")
 
 [node name="Control" type="Control" parent="."]
@@ -46,7 +45,7 @@ alignment = 1
 [node name="TitleLabel" type="Label" parent="Control/CenterContainer/Panel/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
-text = "Paused"
+text = "Game Menu"
 horizontal_alignment = 1
 
 [node name="ResumeButton" type="Button" parent="Control/CenterContainer/Panel/VBoxContainer"]
