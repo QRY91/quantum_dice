@@ -14,10 +14,9 @@ const DICE_FACE_SCROLL_CONTAINER_PATH = "%DiceFaceScrollContainer"
 const DICE_FACE_VBOX_PATH = "%DiceFaceScrollContainer/VBoxContainer"
 const INVENTORY_TOGGLE_BUTTON_PATH = "%InventoryToggleButton"
 
-const LEVEL_DISPLAY_PATH = "%LevelDisplay"
+const LEVEL_DISPLAY_PATH = "%LevelLabel"
 const ROLLS_DISPLAY_PATH = "%RollsLabel"
 const SCORE_TARGET_DISPLAY_PATH = "%ScoreLabel"
-const TOTAL_SCORE_DISPLAY_PATH = "%TotalScoreDisplay"
 
 const CORNERSTONE_SLOT_1_PATH = "%CornerstoneSlot1"
 const CORNERSTONE_SLOT_2_PATH = "%CornerstoneSlot2"
@@ -48,7 +47,6 @@ const TRACK_MANAGER_PATH = "%LogicTrackDisplay" # Path for TrackManager (LogicTr
 @onready var level_display_label: Label = get_node_or_null(LEVEL_DISPLAY_PATH)
 @onready var rolls_display_label: Label = get_node_or_null(ROLLS_DISPLAY_PATH)
 @onready var score_target_display_label: Label = get_node_or_null(SCORE_TARGET_DISPLAY_PATH)
-@onready var total_score_display_label: Label = get_node_or_null(TOTAL_SCORE_DISPLAY_PATH)
 
 @onready var cornerstone_slots: Array[Panel] = [
 	get_node_or_null(CORNERSTONE_SLOT_1_PATH),
@@ -171,8 +169,6 @@ func update_score_target_display(p_score: int, p_target: int):
 				if not mat.get_shader_parameter("tier_base_color"): # Check if a color is missing
 					if PaletteManager: # Check if the autoload exists
 						_on_palette_changed(PaletteManager.get_current_palette_colors())
-
-	if is_instance_valid(level_display_label): level_display_label.text = "Level: %d" % p_target
 
 func update_level_display(p_level: int):
 	if is_instance_valid(level_display_label): level_display_label.text = "Level: %d" % p_level

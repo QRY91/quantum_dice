@@ -10,7 +10,7 @@
 [ext_resource type="PackedScene" uid="uid://31yi0q5qj6vs" path="res://scenes/ui/PlaybackSpeedButton.tscn" id="6_quvg6"]
 [ext_resource type="PackedScene" uid="uid://dptegvnfmc884" path="res://scenes/ui/AutoRollButton.tscn" id="7_x1h30"]
 [ext_resource type="Script" path="res://scripts/ui/TrackManager.gd" id="8_hcnr4"]
-[ext_resource type="Texture2D" uid="uid://cscun6yak607k" path="res://assets/sprites/X_roman.png" id="9_placeholder_gear"]
+[ext_resource type="Texture2D" uid="uid://dclpj25ty6m6c" path="res://resources/atlas/ui_inventory_atlas.tres" id="11_4j6mp"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_rtbff"]
 shader = ExtResource("4_p3a0w")
@@ -79,6 +79,7 @@ script = ExtResource("1_ba2h4")
 
 [node name="LevelLabel" type="Label" parent="."]
 unique_name_in_owner = true
+visible = false
 material = SubResource("ShaderMaterial_rtbff")
 custom_minimum_size = Vector2(40, 640)
 layout_mode = 0
@@ -133,6 +134,7 @@ metadata/_edit_lock_ = true
 
 [node name="TargetLabel" type="Label" parent="."]
 unique_name_in_owner = true
+visible = false
 material = SubResource("ShaderMaterial_h4fpi")
 custom_minimum_size = Vector2(40, 640)
 layout_mode = 0
@@ -262,6 +264,6 @@ offset_top = 10.0
 offset_right = 630.0
 offset_bottom = 50.0
 tooltip_text = "Game Menu"
-texture_normal = ExtResource("9_placeholder_gear")
+texture_normal = ExtResource("11_4j6mp")
 ignore_texture_size = true
 stretch_mode = 5
