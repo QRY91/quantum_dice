@@ -76,10 +76,16 @@ func _on_start_button_pressed():
 
 func _on_settings_button_pressed():
 	if not settings_menu:
-		settings_menu = settings_menu_scene.instantiate()
-		add_child(settings_menu)
+		var settings_instance = settings_menu_scene.instantiate()
+		add_child(settings_instance)
+		# Get the actual settings menu Control node
+		settings_menu = settings_instance.get_node("SettingsMenu")
+		if not settings_menu:
+			printerr("MainMenu: Failed to get SettingsMenu Control node from CanvasLayer!")
+			settings_instance.queue_free()
+			return
 		settings_menu.back_pressed.connect(_on_settings_back)
-	settings_menu.show_menu()
+	settings_menu.show_menu(true) # Pass true to indicate it's from main menu
 	# Disable main menu buttons while in settings
 	start_button.disabled = true
 	settings_button.disabled = true

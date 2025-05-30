@@ -9,13 +9,20 @@ signal back_pressed
 @onready var palette_button = %PaletteButton
 @onready var ambient_sound_button = %AmbientSoundButton
 @onready var back_button = %BackButton
+@onready var settings_panel = $Panel
 
 var palette_swapper_scene = preload("res://scenes/ui/palette_swapper.tscn")
 var ambient_sound_panel_scene = preload("res://scenes/ui/AmbientSoundPanel.tscn")
 var palette_swapper: Control
 var ambient_sound_panel: Control
 
+# Track if we're opened from the main menu (where we don't want to pause)
+var opened_from_main_menu: bool = false
+
 func _ready():
+	# Set process mode to handle input while game is paused
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	
 	# Connect signals
 	music_slider.value_changed.connect(_on_music_volume_changed)
 	sfx_slider.value_changed.connect(_on_sfx_volume_changed)
@@ -30,6 +37,9 @@ func _ready():
 	sfx_slider.value = AudioManager.sfx_volume
 	music_toggle.button_pressed = AudioManager.music_enabled
 	sfx_toggle.button_pressed = AudioManager.sfx_enabled
+	
+	# Hide on start
+	hide_menu()
 
 func _on_music_volume_changed(value: float):
 	AudioManager.set_music_volume(value)
@@ -50,7 +60,7 @@ func _on_palette_button_pressed():
 		palette_swapper.back_pressed.connect(_on_palette_swapper_back)
 	palette_swapper.show()
 	# Hide the settings menu panel but keep the script running
-	$Panel.hide()
+	settings_panel.hide()
 
 func _on_ambient_sound_button_pressed():
 	if not ambient_sound_panel:
@@ -65,50 +75,61 @@ func _on_ambient_sound_button_pressed():
 		)
 	ambient_sound_panel.show()
 	# Hide the settings menu panel but keep the script running
-	$Panel.hide()
+	settings_panel.hide()
 
 func _on_palette_swapper_back():
 	if palette_swapper:
 		palette_swapper.hide()
-	$Panel.show()
+	settings_panel.show()
 
 func _on_ambient_sound_panel_back():
 	if ambient_sound_panel:
 		ambient_sound_panel.hide()
-	$Panel.show()
+	settings_panel.show()
 
 func _on_back_button_pressed():
 	emit_signal("back_pressed")
 
-func show_menu():
-	show()
-	$Panel.show()
+func show_menu(from_main_menu: bool = false):
+	opened_from_main_menu = from_main_menu
+	get_parent().show() # Show CanvasLayer
+	show() # Show Control
+	settings_panel.show()
 	if palette_swapper:
 		palette_swapper.hide()
 	if ambient_sound_panel:
 		ambient_sound_panel.hide()
+	
+	# Only pause if not opened from main menu
+	if not opened_from_main_menu:
+		get_tree().paused = true
 
 func hide_menu():
-	hide()
+	get_parent().hide() # Hide CanvasLayer
+	hide() # Hide Control
 	if palette_swapper:
 		palette_swapper.hide()
 	if ambient_sound_panel:
 		ambient_sound_panel.hide()
-
-func _unhandled_input(event: InputEvent):
-	if not visible or not event.is_action_pressed("ui_cancel"):
-		return
-
-	if is_instance_valid(palette_swapper) and palette_swapper.visible:
-		_on_palette_swapper_back()
-		get_viewport().set_input_as_handled()
-		return
-
-	if is_instance_valid(ambient_sound_panel) and ambient_sound_panel.visible:
-		_on_ambient_sound_panel_back()
-		get_viewport().set_input_as_handled()
-		return
 	
-	# If no sub-panel handled it, then the main settings back action is triggered
-	_on_back_button_pressed()
-	get_viewport().set_input_as_handled() 
+	# Only unpause if we weren't opened from main menu
+	if not opened_from_main_menu:
+		get_tree().paused = false
+
+func _input(event: InputEvent):
+	if not visible:
+		return
+
+	if event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		
+		if is_instance_valid(palette_swapper) and palette_swapper.visible:
+			_on_palette_swapper_back()
+			return
+
+		if is_instance_valid(ambient_sound_panel) and ambient_sound_panel.visible:
+			_on_ambient_sound_panel_back()
+			return
+		
+		# If no sub-panel handled it, then trigger the main settings back action
+		_on_back_button_pressed() 
